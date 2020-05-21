@@ -22,7 +22,7 @@ contract Bank is Ownable {
     /* Enuns */
     
     // Loan Status.
-    enum Status { 
+    enum LnStatus { 
                 
         WaitingForCollateralVerification, // Waiting for collateral verification by the Manager.
                 
@@ -36,29 +36,33 @@ contract Bank is Ownable {
     
     // Store Loan information.
     struct LnInfo { 
+        
+        uint256 loanId; // loan Id.
             
         uint256 amount; // Loan amount.
             
         uint256 duration; // Duration of Loan. 
+        
+        uint256 interest; // Interest for the Loan.
             
         uint256 endTime; // Loan end time.
             
-        uint256 interest; // Interest for the Loan.
-            
-        Status loanStatus; //Loan status
+        LnStatus loanStatus; //Loan status
             
     }
     
     // Store Fixed Deposit information.
-    struct fxDptInfo {
+    struct FxDptInfo {
             
+        uint256 fdId; // Fixied deposit Id.
+        
         uint256 amount; // Fixed Deposit amount.
             
         uint256 duration; // Duration of Fixed Deposit.
+        
+        uint256 interest; // Interest for the Fixed Diposit.
             
         uint256 endTime; // Fixed Deposit end time.
-            
-        uint256 interest; // Interest for the Fixed Diposit.
             
     }
      
@@ -66,13 +70,33 @@ contract Bank is Ownable {
     // Store information of the User.
     struct UsrInfo{
         
+        bool acc_status; // Account status. `true` value denoted existing user; 
+        
         uint256 balance; // Balance amount.
         
-        uint256 totalFD; // Sum total of all Fixed Diposit.
+        uint256 totalUsrFD; // Sum total of all Fixed Diposit.
         
         LnInfo[] loanInfo; // Store details of all Loans of an User.
         
-        fxDptInfo[] FDInfo; // Store details of all Fixed Deposits of an User.
+        FxDptInfo[] fdInfo; // Store details of all Fixed Deposits of an User.
+        
+    }
+    
+    // Loan tariff
+    struct LoanTariff{
+        
+        uint256 duration; // Loan duration.
+        
+        uint256 interest; // Loan intrest.
+        
+    }
+    
+    // Fixed Deposit tariff
+    struct FdTariff{
+        
+        uint256 duration; // Fixed Deposit duration.
+        
+        uint256 interest; // Fixed Deposit intrest.
         
     }
     
@@ -100,36 +124,34 @@ contract Bank is Ownable {
      * @dev Emitted when User deposits an amount for a fixed duration.
      * @param _userAddr User address.
      * @param _amount Deposit amount.
-     * @param _duration Duration of Fixed deposit.
+     * @param _tariffId Tariff Id for fixed deposit.
      */
-    event FixedDeposit(address _userAddr, uint256 _amount,uint256 _duration); 
+    event FixedDeposit(address _userAddr, uint256 _amount,uint256 _tariffId); 
         
     
     /**
      * @dev Emitted when User withdraws his/her fixed deposit.
      * @param _userAddr User address.
      * @param _amount Amount withdrawn.
-     * @param _fdId Fixed deposit Id.
      */
-    event WithdrawFD(address _userAddr, uint256 _amount, uint256 _fdId);  
+    event WithdrawFD(address _userAddr, uint256 _amount);  
         
     
     /**
      * @dev Emitted when User withdraws his/her fixed deposit before maturity period.
      * @param _userAddr User address.
      * @param _amount Amount withdrawn.
-     * @param _fdId Fixed deposit Id.
      */
-    event WithdrawFDBeforeMaturity(address _userAddr, uint256 _amount, uint256 _fdId);  
+    event WithdrawFDBeforeMaturity(address _userAddr, uint256 _amount);  
         
     
     /**
      * @dev Emitted when User requests for a loan.
      * @param _userAddr User address.
      * @param _amount Loan amount.
-     * @param _duration Duration of Loan.
+     * @param _tariffId Tariff Id for Loan.
      */
-    event RequestLoan(address _userAddr, uint256 _amount, uint256 _duration);  
+    event RequestLoan(address _userAddr, uint256 _amount, uint256 _tariffId);  
         
     
     /**
@@ -235,13 +257,15 @@ contract Bank is Ownable {
     
     uint256 contractBalance; // Balance amount of the contract.
     
+    uint256 totalFixedDiposit; // Total fixed diposit.
+    
     bool acceptDeposit; // User can diposit Eth only if `acceptDeposit` is `true`;
     
     bool loanAvailable; // User can request Loan only if `loanAvailable` is `truw`;
     
-    mapping(uint256 => uint256) loanDurationToInterest; // Loan durations and its interest rate.
+    LoanTariff[] lnTariff; // Loan durations and its interest rate.
     
-    mapping(uint256 => uint256) FDDurationToInterest; // Fixed Diposit durations and its interest rate.
+    FdTariff[] fxDptTariff; // Fixed Diposit durations and its interest rate.
     
     
     mapping(address => UsrInfo) userInfo; // Information of User.
@@ -251,6 +275,7 @@ contract Bank is Ownable {
     
     /** @dev Requires that the sender is the Manager */
     modifier onlyByManager() {
+        
         require(managerAddress == msg.sender);
         _;
         
@@ -275,6 +300,15 @@ contract Bank is Ownable {
      * @dev User deposits to his/her account.
      */
     function deposit() external payable{
+        
+        if(!userInfo[msg.sender].acc_status) {
+            userInfo[msg.sender].acc_status = true;
+            userAddress.push(msg.sender);
+        }
+        userInfo[msg.sender].balance = userInfo[msg.sender].balance.add(msg.value);
+        contractBalance = contractBalance.add(msg.value);
+        
+        emit Deposit(msg.sender, msg.value);
       
     }
     
@@ -285,25 +319,72 @@ contract Bank is Ownable {
      */
     function withdraw(uint256 _amount) external {
         
+        require(userInfo[msg.sender].balance >= _amount, "Insufficient Balance");
+        msg.sender.transfer(_amount);
+        userInfo[msg.sender].balance = userInfo[msg.sender].balance.sub(_amount);
+        
+        emit Withdraw(msg.sender, _amount);
+        
     }
     
     /**
-     * @notice Send fixed diposit amount in Eth.
+     * @notice Send fixed diposit amount in Eth and choose a tariff.
      * @dev User deposits an amount for a fixed duration.
      * @param _amount Deposit amount.
-     * @param _duration Duration of fixed deposit.
+     * @param _tariffId Tsariff id for fixed deposit.
      */
-    function fixedDeposit(uint256 _amount,uint256 _duration) external payable {
+    function fixedDeposit(uint256 _amount,uint256 _tariffId) external payable {
+        
+        if(!userInfo[msg.sender].acc_status) {
+            userInfo[msg.sender].acc_status = true;
+            userAddress.push(msg.sender);
+        }
+        
+        userInfo[msg.sender].totalUsrFD = userInfo[msg.sender].totalUsrFD.add(msg.value);
+        
+        userInfo[msg.sender].fdInfo.push(
+            FxDptInfo(
+                uint256(keccak256(abi.encodePacked(now, msg.sender))),
+                _amount,
+                fxDptTariff[_tariffId].duration,
+                fxDptTariff[_tariffId].interest,
+                (now + fxDptTariff[_tariffId].duration * 1 days )
+            ));
+        
+        contractBalance = contractBalance.add(msg.value); 
+        totalFixedDiposit = totalFixedDiposit.add(msg.value);
+        
+        emit FixedDeposit(msg.sender, _amount, msg.value);
         
     }
     
     /**
      * @notice Withdraw fixed deposit.
      * @dev User withdraws his/her fixed deposit.
-     * @param _fdId Fixed deposit Id.
+     * @param _fdIndex Index of the Fixed deposit to be withdrawn..
      */
-    function withdrawFD(uint256 _fdId) external {
+    function withdrawFD(uint256 _fdIndex) external {
         
+        uint256 _fdCount = userInfo[msg.sender].loanInfo.length;
+        
+        require(_fdIndex < _fdCount, "Invalid choice");
+        
+        require(userInfo[msg.sender].fdInfo[_fdIndex].endTime >= now, "This Fixed deposit is not matured");
+        
+        uint256 _amount =  userInfo[msg.sender].fdInfo[_fdIndex].amount;
+        
+        userInfo[msg.sender].totalUsrFD = userInfo[msg.sender].totalUsrFD.sub(_amount);
+        userInfo[msg.sender].fdInfo[_fdIndex] =  userInfo[msg.sender].fdInfo[_fdIndex - 1];
+        userInfo[msg.sender].fdInfo.pop;
+        
+        contractBalance = contractBalance.sub(_amount); 
+        totalFixedDiposit = totalFixedDiposit.sub(_amount);
+        
+        msg.sender.transfer(_amount);
+        
+        userInfo[msg.sender].balance = userInfo[msg.sender].balance.sub(_amount);    
+        
+        emit WithdrawFD(msg.sender, _amount);
     }
     
     /**
@@ -486,7 +567,9 @@ contract Bank is Ownable {
      * @dev Owner changes the manager.
      * @param _managerAddrs Manager's address.
      */
-    function setManager(address _managerAddrs) public {
+    function setManager(address _managerAddrs) external onlyOwner {
+        
+        managerAddress = _managerAddrs; 
         
     }
     
