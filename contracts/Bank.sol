@@ -41,7 +41,7 @@ contract Bank is Ownable {
             
         uint256 amount; // Loan amount.
             
-        uint256 duration; // Duration of Loan. 
+        uint256 duration; // Duration of Loan in Days. 
         
         uint256 interest; // Interest for the Loan.
             
@@ -58,7 +58,7 @@ contract Bank is Ownable {
         
         uint256 amount; // Fixed Deposit amount.
             
-        uint256 duration; // Duration of Fixed Deposit.
+        uint256 duration; // Duration of Fixed Deposit in Days.
         
         uint256 interest; // Interest for the Fixed Diposit.
             
@@ -348,7 +348,7 @@ contract Bank is Ownable {
                 _amount,
                 fxDptTariff[_tariffId].duration,
                 fxDptTariff[_tariffId].interest,
-                (now + fxDptTariff[_tariffId].duration * 1 days )
+                now.add(fxDptTariff[_tariffId].duration.mul(1 days) )
             ));
         
         contractBalance = contractBalance.add(msg.value); 
@@ -360,10 +360,10 @@ contract Bank is Ownable {
     
     /**
      * @notice Withdraw fixed deposit.
-     * @dev User withdraws his/her fixed deposit.
-     * @param _fdIndex Index of the Fixed deposit to be withdrawn..
+     * @dev User withdraws his/her fixed deposit with interest.
+     * @param _fdIndex Index of the Fixed deposit to be withdrawn.
      */
-    function withdrawFD(uint256 _fdIndex) external {
+    function withdrawFD(uint256 _fdIndex) public {
         
         uint256 _fdCount = userInfo[msg.sender].loanInfo.length;
         
@@ -371,7 +371,17 @@ contract Bank is Ownable {
         
         require(userInfo[msg.sender].fdInfo[_fdIndex].endTime >= now, "This Fixed deposit is not matured");
         
+        uint256 _interest =  userInfo[msg.sender].fdInfo[_fdIndex].interest;
+        
+        uint256 _numOfDays = userInfo[msg.sender].fdInfo[_fdIndex].duration.add((now.sub(userInfo[msg.sender].fdInfo[_fdIndex].endTime)).div(1 days));
+        
         uint256 _amount =  userInfo[msg.sender].fdInfo[_fdIndex].amount;
+        
+        _amount = _amount.add(_amount.div(100).mul(_interest));
+        
+        _amount = _amount.div(365).mul(_numOfDays);
+        
+        require(contractBalance >= _amount, "Insufficient balance in contract");
         
         userInfo[msg.sender].totalUsrFD = userInfo[msg.sender].totalUsrFD.sub(_amount);
         userInfo[msg.sender].fdInfo[_fdIndex] =  userInfo[msg.sender].fdInfo[_fdIndex - 1];
@@ -382,17 +392,53 @@ contract Bank is Ownable {
         
         msg.sender.transfer(_amount);
         
-        userInfo[msg.sender].balance = userInfo[msg.sender].balance.sub(_amount);    
-        
         emit WithdrawFD(msg.sender, _amount);
     }
     
     /**
      * @notice Withdraw fixed deposit before maturity period.
-     * @dev User withdraws his/her fixed deposit before maturity period.
-     * @param _fdId Fixed deposit Id.
+     * @dev User withdraws his/her fixed deposit before maturity period with penality of 5 percent of the FD.
+     * @param _fdIndex Index of the Fixed deposit to be withdrawn.
      */
-    function withdrawFDBeforeMaturity(uint256 _fdId) external {
+    function withdrawFDBeforeMaturity(uint256 _fdIndex) external {
+        
+        if(userInfo[msg.sender].fdInfo[_fdIndex].endTime >= now) {
+            
+            withdrawFD(_fdIndex);
+        }
+        else {
+        
+            uint256 _fdCount = userInfo[msg.sender].loanInfo.length;
+            
+            require(_fdIndex < _fdCount, "Invalid choice");
+            
+            uint256 _interest =  userInfo[msg.sender].fdInfo[_fdIndex].interest;
+            
+            uint256 _numOfDays = (userInfo[msg.sender].fdInfo[_fdIndex].endTime.sub(now)).div(1 days);
+            
+            uint256 _amount =  userInfo[msg.sender].fdInfo[_fdIndex].amount;
+            
+            _amount = _amount.add(_amount.div(100).mul(_interest));
+            
+            _amount = _amount.div(365).mul(_numOfDays);
+            
+            _amount = _amount.sub(_amount.div(100).mul(5)); // Penality deducted.
+            
+            require(contractBalance >= _amount, "Insufficient balance in contract");
+            
+            userInfo[msg.sender].totalUsrFD = userInfo[msg.sender].totalUsrFD.sub(_amount);
+            userInfo[msg.sender].fdInfo[_fdIndex] =  userInfo[msg.sender].fdInfo[_fdIndex - 1];
+            userInfo[msg.sender].fdInfo.pop;
+            
+            contractBalance = contractBalance.sub(_amount); 
+            totalFixedDiposit = totalFixedDiposit.sub(_amount);
+            
+            msg.sender.transfer(_amount);
+            
+            emit WithdrawFDBeforeMaturity(msg.sender, _amount);
+        
+        }
+        
         
     }
     
