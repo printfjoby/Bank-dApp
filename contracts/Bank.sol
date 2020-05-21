@@ -61,6 +61,157 @@ contract Bank {
         
     }
     
+    
+    
+    /*Events */
+    
+    /**
+     * @dev Emitted when User deposits to his/her account.
+     * @param _userAddr User address.
+     * @param _amount Amount deposited.
+     */
+    event Deposit(address _userAddr, uint _amount);  
+    
+    
+    /**
+     * @dev Emitted when User withdraws from his/her account.
+     * @param _userAddr User address.
+     * @param _amount Amount withdrawn.
+     */
+    event Withdraw(address _userAddr, uint256 _amount);  
+    
+    
+    /**
+     * @dev Emitted when User deposits an amount for a fixed duration.
+     * @param _userAddr User address.
+     * @param _amount Deposit amount.
+     * @param _duration Duration of Fixed deposit.
+     */
+    event FixedDeposit(address _userAddr, uint256 _amount,uint256 _duration); 
+        
+    
+    /**
+     * @dev Emitted when User withdraws his/her fixed deposit.
+     * @param _userAddr User address.
+     * @param _amount Amount withdrawn.
+     * @param _fdId Fixed deposit Id.
+     */
+    event WithdrawFD(address _userAddr, uint256 _amount, uint256 _fdId);  
+        
+    
+    /**
+     * @dev Emitted when User withdraws his/her fixed deposit before maturity period.
+     * @param _userAddr User address.
+     * @param _amount Amount withdrawn.
+     * @param _fdId Fixed deposit Id.
+     */
+    event WithdrawFDBeforeMaturity(address _userAddr, uint256 _amount, uint256 _fdId);  
+        
+    
+    /**
+     * @dev Emitted when User requests for a loan.
+     * @param _userAddr User address.
+     * @param _amount Loan amount.
+     * @param _duration Duration of Loan.
+     */
+    event RequestLoan(address _userAddr, uint256 _amount, uint256 _durationd);  
+        
+    
+    /**
+     * @dev Emitted when User repays the loan.
+     * @param _userAddr User address.
+     * @param _loanId Loan Id.
+     * @param _amount Repay amount.
+     */
+    event RepayLoan(address _userAddr, uint256 _loanId, uint256 _amount);   
+        
+    
+    /**
+     * @dev Emitted when Manager approve or reject loan.
+     * @param _userAddr User address.
+     * @param _loanId Loan Id
+     * @param _status Loan status, if `true` then loan approved else if `false` then loan rejected.
+     */
+    event ApproveOrRejectLoan(address _userAddr, uint _loanId, bool _status);  
+        
+    
+    /**
+     * @dev Emitted when new deposits are freezed.
+     */
+    event PausedNewDeposits();  
+        
+    
+    /**
+     * @dev Emitted when allows new deposits.
+     */
+    event ResumedNewDeposits();  
+        
+    
+    /**
+     * @dev Emitted when new loans are freezed.
+     */
+    event PausedNewLoans();  
+        
+    
+    /**
+     * @dev Emitted when new loans are available.
+     */
+    event ResumedNewLoans();  
+        
+        
+    /**
+     * @dev Emitted when Owner deposits Eth to the Bank.
+     */
+    event DepositEthToBank(uint256 _amount);   
+        
+    
+    /**
+     * @dev Emitted when Owner withdraws profit.
+     * @param _amount Withdraw amount.
+     */
+    event OwnerWithdraw(uint256 _amount);  
+        
+    
+    /**
+     * @dev Emitted when Owner sets a loan duration and its intrest rate.
+     * @param _duration Loan duration.
+     * @param _intrest Loan intrest.
+     * 
+     */
+    event SetLoanDurationAndIntrest(uint256 _duration, uint256 _intrest); 
+
+    
+    /**
+     * @dev Emitted when Owner remove a loan duration and its intrest rate.
+     * @param _duration Loan duration.
+     */
+    event RemoveLoanDurationAndIntrest(uint256 _duration);  
+        
+    
+    /**
+     * @dev Emitted when Owner sets a Fixed deposit duration and its intrest rate. 
+     * @param _duration of Fixed deposit.
+     * @param _intrest Fixed deposit intrest.
+     */
+    event SetFDDurationAndIntrest(uint256 _duration, uint256 _intrest); 
+    
+    
+     /**
+     * @dev Emitted when Owner remove a fixed deposit duration and its intrest rate.
+     * @uint256 _duration Duration of fixed deposit.
+     */
+    event RemoveFDDurationAndIntrest(uint256 _duration);  
+        
+    
+     /**
+     * @dev Emitted when Owner changes the manager.
+     * @param _managerAddrs Manager's address.
+     */
+    event SetManager(address _managerAddrs);  
+        
+    
+    
+    
      /* Storage */
     
     address[] userAddress; // Array of User addresses.
@@ -83,6 +234,17 @@ contract Bank {
     
     
     
+    
+    /*Constructor */
+    
+    constructor () public {
+        
+    }
+    
+    
+    
+    /* Functions */
+    
 
     /**
      * @notice Send eth to deposit it in the account.
@@ -104,8 +266,8 @@ contract Bank {
     /**
      * @notice Send fixed diposit amount in Eth.
      * @dev User deposits an amount for a fixed duration.
-     * @param _amount Withdrawal amount.
-     * @param _duration Duration of fi deposit.
+     * @param _amount Deposit amount.
+     * @param _duration Duration of fixed deposit.
      */
     function fixedDeposit(uint256 _amount,uint256 _duration) external payable {
         
@@ -264,21 +426,21 @@ contract Bank {
     }
     
     /**
-     * @notice Owner can set a fixed deposit duration and its intrest rate. 
-     * @dev Owner sets a fixed deposit duration and its intrest rate. 
-     * @return _durationToIntrest Array of duration to intrest rate.
+     * @notice Get all fixed deposit durations and their intrest rates. 
+     * @dev Get all fixed deposit durations and their intrest rates. 
+     * @return _durationToIntrest Array of duration to intrest rates.
      */
-    function setFDDurationAndIntrest(mapping[] (uint256 => uint256) _durationToIntrest ) external {
+    function getFDDurationAndIntrest() external returns (mapping[] (uint256 => uint256) _durationToIntrest ) {
         
     }
     
     /**
-     * @notice Get all fixed deposit durations and their intrest rates.
-     * @dev Get all fixed deposit durations and their intrest rates.
-     * @return _duration Fixed deposit duration.
-     * @p _intrest Intrest rate for fixed deposit.
+     * @notice Owner sets fixed deposit duration and its intrest rate.
+     * @dev Owner sets fixed deposit duration and its intrest rate
+     * @param _duration Fixed deposit duration.
+     * @param _interest Intrest rate for fixed deposit.
      */
-    function getFDDurationAndIntrest() external returns(uint256 _duration, uint256 _intrest) {
+    function setFDDurationAndIntrest(uint256 _duration, uint256 _intrest) external {
         
     }
     
