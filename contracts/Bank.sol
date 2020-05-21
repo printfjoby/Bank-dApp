@@ -1,11 +1,89 @@
 pragma solidity ^0.5.1;
+
     /**
      * @title Decentralized Bank
      * @author Joby Augustine
      * @notice You use this contract for banking operations. 
      * @dev The main Bank contract for banking operations.
      */
+     
 contract Bank {
+    
+    /* Structs */
+     
+    // Store information of the User.
+    struct UsrInfo{
+        
+        uint256 balance; // Balance amount.
+        
+        uint256 totalFD; // Sum total of all Fixed Diposit.
+        
+        // Store Loan information.
+        struct LnInfo { 
+            
+            uint256 amount; // Loan amount.
+            
+            uint256 duration; // Duration of Loan. 
+            
+            uint256 endTime; // Loan end time.
+            
+            uint256 intrest; // Intrest for the Loan.
+            
+            enum Status ={ // Loan Status.
+                
+                WaitingForCollateralVerification, // Waiting for collateral verification by the Manager.
+                
+                Approved, // Loan approved by Manager after collateral verification.
+                
+                RepaymetFailed // Failed to repay the loan.
+            };
+            
+        }
+        
+        LnInfo[] loanInfo; // Store details of all Loans of an User.
+         
+         
+        // Store Fixed Deposit information.
+        struct fxDptInfo {
+            
+            uint256 amount; // Fixed Deposit amount.
+            
+            uint256 duration; // Duration of Fixed Deposit.
+            
+            uint256 endTime; // Fixed Deposit end time.
+            
+            uint256 intrest; // Intrest for the Fixed Diposit.
+            
+            
+        }
+        
+        fxDptInfoInfo[] FDInfo; // Store details of all Fixed Deposits of an User.
+        
+    }
+    
+     /* Storage */
+    
+    address[] userAddress; // Array of User addresses.
+    
+    address managerAddress; // Managers's Address.
+    
+    uint256 contractBalance; // Balance amount of the contract.
+    
+    bool acceptDeposit; // User can diposit Eth only if `acceptDeposit` is `true`;
+    
+    bool loanAvailable; // User can request Loan only if `loanAvailable` is `truw`;
+    
+    mapping[] (uint256 => uint256) loanDurationToIntrest; // Loan durations and its intrest rate.
+    
+    mapping[] (uint256 => uint256) FDDurationToIntrest; // Fixed Diposit durations and its intrest rate.
+    
+    
+    mapping(address => UsrInfo) userInfo; // Information of User.
+    
+    
+    
+    
+
     /**
      * @notice Send eth to deposit it in the account.
      * @dev User deposits to his/her account.
