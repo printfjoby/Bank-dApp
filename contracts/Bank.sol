@@ -11,9 +11,10 @@ pragma solidity ^0.6.0;
      
 /* Imports */
 import "./SafeMath.sol"; 
+import "./ownable.sol";
      
 /*Contract */
-contract Bank {
+contract Bank is Ownable {
     
     /* library */
     using SafeMath for uint256;
@@ -246,12 +247,21 @@ contract Bank {
     mapping(address => UsrInfo) userInfo; // Information of User.
     
     
+    /* Modifiers */
     
+    /** @dev Requires that the sender is the Manager */
+    modifier onlyByManager() {
+        require(managerAddress == msg.sender);
+        _;
+        
+    }
     
     
     /*Constructor */
     
     constructor () public {
+        
+    
         
     }
     
