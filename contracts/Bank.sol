@@ -1,4 +1,6 @@
-pragma solidity ^0.5.1;
+// SPDX-License-Identifier: UNLICENSED
+
+pragma solidity ^0.6.0;
 
     /**
      * @title Decentralized Bank
@@ -7,9 +9,58 @@ pragma solidity ^0.5.1;
      * @dev The main Bank contract for banking operations.
      */
      
+/* Imports */
+import "./SafeMath.sol"; 
+     
+/*Contract */
 contract Bank {
     
+    /* library */
+    using SafeMath for uint256;
+    
+    /* Enuns */
+    
+    // Loan Status.
+    enum Status { 
+                
+        WaitingForCollateralVerification, // Waiting for collateral verification by the Manager.
+                
+        Approved, // Loan approved by Manager after collateral verification.
+                
+        RepaymetFailed // Failed to repay the loan.
+    }
+            
+    
     /* Structs */
+    
+    // Store Loan information.
+    struct LnInfo { 
+            
+        uint256 amount; // Loan amount.
+            
+        uint256 duration; // Duration of Loan. 
+            
+        uint256 endTime; // Loan end time.
+            
+        uint256 interest; // Interest for the Loan.
+            
+        Status loanStatus; //Loan status
+            
+    }
+    
+    // Store Fixed Deposit information.
+    struct fxDptInfo {
+            
+        uint256 amount; // Fixed Deposit amount.
+            
+        uint256 duration; // Duration of Fixed Deposit.
+            
+        uint256 endTime; // Fixed Deposit end time.
+            
+        uint256 interest; // Interest for the Fixed Diposit.
+            
+    }
+     
      
     // Store information of the User.
     struct UsrInfo{
@@ -18,46 +69,9 @@ contract Bank {
         
         uint256 totalFD; // Sum total of all Fixed Diposit.
         
-        // Store Loan information.
-        struct LnInfo { 
-            
-            uint256 amount; // Loan amount.
-            
-            uint256 duration; // Duration of Loan. 
-            
-            uint256 endTime; // Loan end time.
-            
-            uint256 intrest; // Intrest for the Loan.
-            
-            enum Status ={ // Loan Status.
-                
-                WaitingForCollateralVerification, // Waiting for collateral verification by the Manager.
-                
-                Approved, // Loan approved by Manager after collateral verification.
-                
-                RepaymetFailed // Failed to repay the loan.
-            };
-            
-        }
-        
         LnInfo[] loanInfo; // Store details of all Loans of an User.
-         
-         
-        // Store Fixed Deposit information.
-        struct fxDptInfo {
-            
-            uint256 amount; // Fixed Deposit amount.
-            
-            uint256 duration; // Duration of Fixed Deposit.
-            
-            uint256 endTime; // Fixed Deposit end time.
-            
-            uint256 intrest; // Intrest for the Fixed Diposit.
-            
-            
-        }
         
-        fxDptInfoInfo[] FDInfo; // Store details of all Fixed Deposits of an User.
+        fxDptInfo[] FDInfo; // Store details of all Fixed Deposits of an User.
         
     }
     
@@ -114,7 +128,7 @@ contract Bank {
      * @param _amount Loan amount.
      * @param _duration Duration of Loan.
      */
-    event RequestLoan(address _userAddr, uint256 _amount, uint256 _durationd);  
+    event RequestLoan(address _userAddr, uint256 _amount, uint256 _duration);  
         
     
     /**
@@ -173,34 +187,34 @@ contract Bank {
         
     
     /**
-     * @dev Emitted when Owner sets a loan duration and its intrest rate.
+     * @dev Emitted when Owner sets a loan duration and its interest rate.
      * @param _duration Loan duration.
-     * @param _intrest Loan intrest.
+     * @param _interest Loan interest.
      * 
      */
-    event SetLoanDurationAndIntrest(uint256 _duration, uint256 _intrest); 
+    event SetLoanDurationAndInterest(uint256 _duration, uint256 _interest); 
 
     
     /**
-     * @dev Emitted when Owner remove a loan duration and its intrest rate.
+     * @dev Emitted when Owner remove a loan duration and its interest rate.
      * @param _duration Loan duration.
      */
-    event RemoveLoanDurationAndIntrest(uint256 _duration);  
+    event RemoveLoanDurationAndInterest(uint256 _duration);  
         
     
     /**
-     * @dev Emitted when Owner sets a Fixed deposit duration and its intrest rate. 
+     * @dev Emitted when Owner sets a Fixed deposit duration and its interest rate. 
      * @param _duration of Fixed deposit.
-     * @param _intrest Fixed deposit intrest.
+     * @param _interest Fixed deposit interest.
      */
-    event SetFDDurationAndIntrest(uint256 _duration, uint256 _intrest); 
+    event SetFDDurationAndInterest(uint256 _duration, uint256 _interest); 
     
     
      /**
-     * @dev Emitted when Owner remove a fixed deposit duration and its intrest rate.
-     * @uint256 _duration Duration of fixed deposit.
+     * @dev Emitted when Owner remove a fixed deposit duration and its interest rate.
+     * @param _duration Duration of fixed deposit.
      */
-    event RemoveFDDurationAndIntrest(uint256 _duration);  
+    event RemoveFDDurationAndInterest(uint256 _duration);  
         
     
      /**
@@ -224,9 +238,9 @@ contract Bank {
     
     bool loanAvailable; // User can request Loan only if `loanAvailable` is `truw`;
     
-    mapping[] (uint256 => uint256) loanDurationToIntrest; // Loan durations and its intrest rate.
+    mapping(uint256 => uint256) loanDurationToInterest; // Loan durations and its interest rate.
     
-    mapping[] (uint256 => uint256) FDDurationToIntrest; // Fixed Diposit durations and its intrest rate.
+    mapping(uint256 => uint256) FDDurationToInterest; // Fixed Diposit durations and its interest rate.
     
     
     mapping(address => UsrInfo) userInfo; // Information of User.
@@ -297,7 +311,7 @@ contract Bank {
      * @param _amount Loan amount.
      * @param _duration Duration of Loan.
      */
-    function requestLoan(uint256 _amount, uint256 _durationd) external {
+    function requestLoan(uint256 _amount, uint256 _duration) external {
         
     }
     
@@ -316,7 +330,7 @@ contract Bank {
      * @dev Manager can view all loan requests waiting for approval.
      * @return _loans Loans waiting for approval.
      */
-    function viewLoanRequests() external returns(uint[] _loans) {
+    function viewLoanRequests() external returns(uint[] memory _loans) {
         
     }
     
@@ -397,59 +411,63 @@ contract Bank {
     }
     
     /**
-     * @notice Set a loan duration and its intrest rate.
-     * @dev Owner sets a loan duration and its intrest rate.
+     * @notice Set a loan duration and its interest rate.
+     * @dev Owner sets a loan duration and its interest rate.
      * @param _duration Loan duration.
-     * @param _intrest Loan intrest.
+     * @param _interest Loan interest.
      * 
      */
-    function setLoanDurationAndIntrest(uint256 _duration, uint256 _intrest) external {
+    function setLoanDurationAndInterest(uint256 _duration, uint256 _interest) external {
         
     }
     
     /**
-     * @notice Get all loan durations and their intrest rates
-     * @dev Get all loan durations and their intrest rates.
-     * @return _durationToIntrest Array of duration to intrest rate.
+     * @notice Get all loan durations and their interest rates
+     * @dev Get all loan durations and their interest rates.
+     * @param _duration Loan duration.
+     * @param _interest Loan interest.
      */
-    function getLoanDurationAndIntrest() external returns(mapping[] (uint256 => uint256) _durationToIntrest ) {
+    function getLoanDurationAndInterest() external returns(uint256 _duration, uint256  _interest) {
         
     }
     
     /**
-     * @notice Owner can remove a loan duration and its intrest rate.
-     * @dev Owner remove a loan duration and its intrest rate.
+     * @notice Owner can remove a loan duration and its interest rate.
+     * @dev Owner remove a loan duration and its interest rate.
      * @param _duration Loan duration.
      */
-    function removeLoanDurationAndIntrest(uint256 _duration) external {
+    function removeLoanDurationAndInterest(uint256 _duration) external {
         
     }
     
-    /**
-     * @notice Get all fixed deposit durations and their intrest rates. 
-     * @dev Get all fixed deposit durations and their intrest rates. 
-     * @return _durationToIntrest Array of duration to intrest rates.
-     */
-    function getFDDurationAndIntrest() external returns (mapping[] (uint256 => uint256) _durationToIntrest ) {
-        
-    }
     
     /**
-     * @notice Owner sets fixed deposit duration and its intrest rate.
-     * @dev Owner sets fixed deposit duration and its intrest rate
+     * @notice Owner sets fixed deposit duration and its interest rate.
+     * @dev Owner sets fixed deposit duration and its interest rate
      * @param _duration Fixed deposit duration.
-     * @param _interest Intrest rate for fixed deposit.
+     * @param _interest Interest rate for fixed deposit.
      */
-    function setFDDurationAndIntrest(uint256 _duration, uint256 _intrest) external {
+    function setFDDurationAndInterest(uint256 _duration, uint256 _interest) external {
         
     }
+    
+    /**
+     * @notice Get all fixed deposit durations and their interest rates. 
+     * @dev Get all fixed deposit durations and their interest rates. 
+     * @param _duration Fixed deposit duration.
+     * @param _interest Interest rate for fixed deposit.
+     */
+    function getFDDurationAndInterest() external returns (uint256 _duration, uint256 _interest) {
+        
+    }
+    
     
      /**
-     * @notice Owner can remove a fixed deposit duration and its intrest rate.
-     * @dev Owner remove a fixed deposit duration and its intrest rate.
-     * @uint256 _duration Duration of fixed deposit.
+     * @notice Owner can remove a fixed deposit duration and its interest rate.
+     * @dev Owner remove a fixed deposit duration and its interest rate.
+     * @param _duration Duration of fixed deposit.
      */
-    function removeFDDurationAndIntrest(uint256 _duration) external {
+    function removeFDDurationAndInterest(uint256 _duration) external {
         
     }
     
