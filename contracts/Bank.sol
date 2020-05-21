@@ -331,7 +331,7 @@ contract Bank is Ownable {
      * @notice Send fixed diposit amount in Eth and choose a tariff.
      * @dev User deposits an amount for a fixed duration.
      * @param _amount Deposit amount.
-     * @param _tariffId Tsariff id for fixed deposit.
+     * @param _tariffId Tariff id for fixed deposit.
      */
     function fixedDeposit(uint256 _amount,uint256 _tariffId) external payable {
         
@@ -446,9 +446,26 @@ contract Bank is Ownable {
      * @notice Request for a loan.
      * @dev User requests for a loan.
      * @param _amount Loan amount.
-     * @param _duration Duration of Loan.
+     * @param _tariffId Tariff id for Loan.
      */
-    function requestLoan(uint256 _amount, uint256 _duration) external {
+    function requestLoan(uint256 _amount, uint256 _tariffId) external {
+        
+        if(!userInfo[msg.sender].acc_status) {
+            userInfo[msg.sender].acc_status = true;
+            userAddress.push(msg.sender);
+        }
+        
+        userInfo[msg.sender].loanInfo.push(
+            LnInfo(
+                uint256(keccak256(abi.encodePacked(now, msg.sender))),
+                _amount,
+                lnTariff[_tariffId].duration,
+                lnTariff[_tariffId].interest,
+                0,
+                LnStatus.WaitingForCollateralVerification
+            ));
+        
+        emit RequestLoan(msg.sender, _amount, _tariffId);
         
     }
     
