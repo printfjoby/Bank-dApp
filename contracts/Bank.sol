@@ -536,7 +536,7 @@ contract Bank is Ownable {
      * @param _approve `true` value indicates the approval and `false` indicates rejection.
      * 
      */
-    function approveOrRejectLoan(uint _loanId, bool _approve) external {
+    function approveOrRejectLoan(uint _loanId, bool _approve) external onlyByManager {
         address _userAddrs = loanIdToUser[_loanId];
         for(uint256 i = 0; i < userInfo[_userAddrs].loanInfo.length ; i.add(1)){
             if(userInfo[_userAddrs].loanInfo[i].loanId == _loanId){
