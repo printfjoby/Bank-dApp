@@ -235,6 +235,7 @@ contract Bank is Ownable {
      /* Storage */
     
     address[] userAddress; // Array of User addresses.
+    address[] loanIdsOfPendingRequests; // Loan ids of pending Loan requests.
     address public managerAddress; // Managers's Address.
     
     uint256 public contractBalance; // Balance amount of the contract.
@@ -249,6 +250,7 @@ contract Bank is Ownable {
     FdTariff[] fxDptTariff; // Fixed Diposit durations and its interest rate.
     
     mapping(address => UsrInfo) userInfo; // Information of User.
+    mapping(uint256 => address) loanIdToUser; // Mapping from loan ids of pending Loan requests to user.
     
     
     /* Modifiers */
@@ -422,6 +424,8 @@ contract Bank is Ownable {
                 0,
                 LnStatus.WaitingForCollateralVerification
             ));
+        loanIdsOfPendingRequests.push(_loanId);
+        loanIdToUser[_loanId] = msg.sender;
         
         emit RequestLoan(_loanId, msg.sender, _amount, _tariffId);
     }
@@ -482,8 +486,6 @@ contract Bank is Ownable {
         
         emit CancelLoanRequest(_loanIndex, msg.sender);
     }
-    
-    
     
     /**
      * @notice View loan requests.
