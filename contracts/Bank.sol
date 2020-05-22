@@ -635,8 +635,11 @@ contract Bank is Ownable {
      * @dev Owner withdraws profit.
      * @param _amount Withdraw amount.
      */
-    function ownerWithdraw(uint256 _amount) external {
+    function ownerWithdraw(uint256 _amount) external onlyOwner {
         
+        contractBalance = contractBalance.sub(_amount);
+        ownerBalance = ownerBalance.sub(_amount);
+        emit OwnerWithdraw(_amount);
     }
     
     /**
