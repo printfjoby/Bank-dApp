@@ -647,8 +647,25 @@ contract Bank is Ownable {
      * @dev Get the deposit details of an user.
      * @param _userAddrs User address.
      */
-    function getUserDepositDetails(address _userAddrs) external {
-        
+    function getUserFdDetails(address _userAddrs) public view returns(uint[] memory, uint256[] memory, uint256[] memory, uint256[] memory, uint256[] memory, uint256[] memory) {
+       
+        uint256[] memory _fdIndexes = new uint256[](userInfo[_userAddrs].fdInfo.length);
+        uint256[] memory _fdIds = new uint256[](userInfo[_userAddrs].fdInfo.length);
+        uint256[] memory _amounts = new uint256[](userInfo[_userAddrs].fdInfo.length);
+        uint256[] memory _durations = new uint256[](userInfo[_userAddrs].fdInfo.length);
+        uint256[] memory _interests = new uint256[](userInfo[_userAddrs].fdInfo.length);
+        uint256[] memory _endTimes = new uint256[](userInfo[_userAddrs].fdInfo.length);
+            
+        for(uint256 i=0 ; i < userInfo[_userAddrs].fdInfo.length; i++ ){
+            
+            _fdIndexes[i] = i;
+            _fdIds[i] = userInfo[_userAddrs].fdInfo[i].fdId;
+            _amounts[i] = userInfo[_userAddrs].fdInfo[i].amount;
+            _durations[i] = userInfo[_userAddrs].fdInfo[i].duration;
+            _interests[i] = userInfo[_userAddrs].fdInfo[i].interest;
+            _endTimes[i] =userInfo[_userAddrs].fdInfo[i].endTime;
+        }
+        return( _fdIndexes, _fdIds, _amounts, _durations, _interests, _endTimes);
     }
     
     /**
