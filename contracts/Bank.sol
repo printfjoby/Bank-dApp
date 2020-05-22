@@ -504,6 +504,7 @@ contract Bank is Ownable {
      * @return _loans Loans waiting for approval.
      */
     function viewLoanRequests() external onlyByManager view returns(uint[] memory, address[] memory, uint256[] memory, uint256[] memory, uint256[] memory) {
+       
         address[] memory _userAddrs = new address[](loanIdsOfPendingRequests.length);
         uint256[] memory _loanIds = new uint256[](loanIdsOfPendingRequests.length);
         uint256[] memory _amounts = new uint256[](loanIdsOfPendingRequests.length);
@@ -537,6 +538,7 @@ contract Bank is Ownable {
      * 
      */
     function approveOrRejectLoan(uint _loanId, bool _approve) external onlyByManager {
+        
         address _userAddrs = loanIdToUser[_loanId];
         for(uint256 i = 0; i < userInfo[_userAddrs].loanInfo.length ; i.add(1)){
             if(userInfo[_userAddrs].loanInfo[i].loanId == _loanId){
@@ -566,6 +568,7 @@ contract Bank is Ownable {
      * @param _loanId Loan Id of the loan.
      */
     function deadLineCrossed(uint256 _loanId) external onlyByManager {
+        
         address _userAddrs = loanIdToUser[_loanId];
         for(uint256 i=0; i< userInfo[_userAddrs].loanInfo.length; i.add(1)){
             if(userInfo[_userAddrs].loanInfo[i].loanId == _loanId ){
@@ -581,6 +584,7 @@ contract Bank is Ownable {
      * @dev Prevent new deposits.
      */
     function pauseNewDeposits() external onlyOwner {
+        
         acceptDeposit = false;
         emit PausedNewDeposits();
     }
@@ -590,6 +594,7 @@ contract Bank is Ownable {
      * @dev Allow new deposits.
      */
     function resumeNewDeposits() external onlyOwner {
+        
         acceptDeposit = true;
         emit ResumedNewDeposits();
     }
@@ -599,6 +604,7 @@ contract Bank is Ownable {
      * @dev Prevent new loans.
      */
     function pauseNewLoans() external onlyOwner {
+        
         loanAvailable = false;
         emit PausedNewDeposits();
         
@@ -609,6 +615,7 @@ contract Bank is Ownable {
      * @dev Allow new loans.
      */
     function resumeNewLoans() external onlyOwner {
+        
         loanAvailable = true;
         emit ResumedNewLoans();
     }
@@ -618,6 +625,8 @@ contract Bank is Ownable {
      * @dev Owner deposits Eth to the Bank.
      */
     function depositEthToBank() external payable {
+        
+        
         
     }
     
