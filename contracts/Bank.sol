@@ -496,7 +496,7 @@ contract Bank is Ownable {
                 LnStatus.WaitingForCollateralVerification
             ));
         
-        emit RequestLoan(_loanId,msg.sender, _amount, _tariffId);
+        emit RequestLoan(_loanId, msg.sender, _amount, _tariffId);
         
     }
     
@@ -550,6 +550,23 @@ contract Bank is Ownable {
         }
         
     }
+    
+    /**
+     * @notice Request for a loan.
+     * @dev User requests for a loan.
+     * @param _loanIndex Loan index id.
+     */
+    function cancelLoanRequest(uint256 _loanIndex) external {
+        
+        require(userInfo[msg.sender].loanInfo[_loanIndex].loanStatus == LnStatus.WaitingForCollateralVerification, "Invalid Loan Id");
+        uint256 _lnCount = userInfo[msg.sender].loanInfo.length;
+        userInfo[msg.sender].loanInfo[_loanIndex] =  userInfo[msg.sender].loanInfo[_lnCount.sub(1)];
+        userInfo[msg.sender].loanInfo.pop;
+        //emit CancelLoanRequest(_loanId, msg.sender);
+        
+    }
+    
+    
     
     /**
      * @notice View loan requests.
