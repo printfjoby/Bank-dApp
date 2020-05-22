@@ -410,6 +410,7 @@ contract Bank is Ownable {
      */
     function requestLoan(uint256 _amount, uint256 _tariffId) external {
         
+        require(loanAvailable,"Loans Unavailable");
         if(!userInfo[msg.sender].acc_status) {
             userInfo[msg.sender].acc_status = true;
             userAddress.push(msg.sender);
