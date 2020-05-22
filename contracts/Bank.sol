@@ -597,7 +597,9 @@ contract Bank is Ownable {
      * @notice Prevent new loans.
      * @dev Prevent new loans.
      */
-    function pauseNewLoans() external {
+    function pauseNewLoans() external onlyOwner {
+        loanAvailable = false;
+        emit PausedNewDeposits();
         
     }
     
@@ -605,8 +607,9 @@ contract Bank is Ownable {
      * @notice Allow new loans.
      * @dev Allow new loans.
      */
-    function resumeNewLoans() external {
-        
+    function resumeNewLoans() external onlyOwner {
+        loanAvailable = true;
+        emit ResumedNewLoans();
     }
     
     /**
