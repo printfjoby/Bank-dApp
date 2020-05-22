@@ -643,8 +643,8 @@ contract Bank is Ownable {
     }
     
     /**
-     * @notice Get the deposit details of an user.
-     * @dev Get the deposit details of an user.
+     * @notice Get the fixed deposit details of an user.
+     * @dev Get the fixed deposit details of an user.
      * @param _userAddrs User address.
      */
     function getUserFdDetails(address _userAddrs) public view returns(uint[] memory, uint256[] memory, uint256[] memory, uint256[] memory, uint256[] memory, uint256[] memory) {
