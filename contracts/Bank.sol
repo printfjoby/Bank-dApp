@@ -540,7 +540,7 @@ contract Bank is Ownable {
     function approveOrRejectLoan(uint _loanId, bool _approve) external onlyByManager {
         
         address _userAddrs = loanIdToUser[_loanId];
-        for(uint256 i = 0; i < userInfo[_userAddrs].loanInfo.length ; i.add(1)){
+        for(uint256 i = 0; i < userInfo[_userAddrs].loanInfo.length ; i++) {
             if(userInfo[_userAddrs].loanInfo[i].loanId == _loanId){
                 if(_approve){
                     userInfo[_userAddrs].loanInfo[i].loanStatus = LnStatus.Approved;
@@ -550,7 +550,7 @@ contract Bank is Ownable {
                         userInfo[_userAddrs].loanInfo[userInfo[_userAddrs].loanInfo.length.sub(1)]; // Copy last element to current element's position.
                     userInfo[loanIdToUser[_loanId]].loanInfo.pop(); // Remove last element
                     
-                    for(uint256 j = 0; j < loanIdsOfPendingRequests.length; j.add(1)){
+                    for(uint256 j = 0; j < loanIdsOfPendingRequests.length; j++){
                         if(loanIdsOfPendingRequests[i] == _loanId){
                             loanIdsOfPendingRequests[i] = loanIdsOfPendingRequests[loanIdsOfPendingRequests.length.sub(1)]; // Copy last element to current element's position.
                             loanIdsOfPendingRequests.pop(); // Remove last element
@@ -570,7 +570,7 @@ contract Bank is Ownable {
     function deadLineCrossed(uint256 _loanId) external onlyByManager {
         
         address _userAddrs = loanIdToUser[_loanId];
-        for(uint256 i=0; i< userInfo[_userAddrs].loanInfo.length; i.add(1)){
+        for(uint256 i=0; i< userInfo[_userAddrs].loanInfo.length; i++) {
             if(userInfo[_userAddrs].loanInfo[i].loanId == _loanId ){
                 require(userInfo[_userAddrs].loanInfo[i].endTime <= now, "Not reached the End time" );
                 userInfo[_userAddrs].loanInfo[i].loanStatus = LnStatus.CrossedDeadline;
@@ -625,8 +625,7 @@ contract Bank is Ownable {
      * @dev Owner deposits Eth to the Bank.
      */
     function depositEthToBank() external payable {
-        
-        
+    
         
     }
     
