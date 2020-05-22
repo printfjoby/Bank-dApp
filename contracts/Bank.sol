@@ -235,13 +235,13 @@ contract Bank is Ownable {
      /* Storage */
     
     address[] userAddress; // Array of User addresses.
-    address[] loanIdsOfPendingRequests; // Loan ids of pending Loan requests.
     address public managerAddress; // Managers's Address.
     
     uint256 public contractBalance; // Balance amount of the contract.
     uint256 ownerBalance; // Owner Balance.
     uint256 constant public loanInterestAmountShare = 10 ; // Loan interest amount share for owner in percent.
     uint256 public totalFixedDiposit; // Total fixed diposit.
+    uint256[] loanIdsOfPendingRequests; // Loan ids of pending Loan requests.
     
     bool public acceptDeposit; // User can diposit Eth only if `acceptDeposit` is `true`;
     bool public loanAvailable; // User can request Loan only if `loanAvailable` is `truw`;
@@ -360,7 +360,7 @@ contract Bank is Ownable {
         emit WithdrawFD(userInfo[msg.sender].fdInfo[_fdIndex].fdId,msg.sender, _amount);
         
         userInfo[msg.sender].fdInfo[_fdIndex] =  userInfo[msg.sender].fdInfo[_fdCount.sub(1)];
-        userInfo[msg.sender].fdInfo.pop;
+        userInfo[msg.sender].fdInfo.pop();
         
         msg.sender.transfer(_amount);
     }
@@ -394,7 +394,7 @@ contract Bank is Ownable {
             emit WithdrawFDBeforeMaturity(userInfo[msg.sender].fdInfo[_fdIndex].fdId,msg.sender, _amount);
             
             userInfo[msg.sender].fdInfo[_fdIndex] =  userInfo[msg.sender].fdInfo[_fdCount.sub(1)];
-            userInfo[msg.sender].fdInfo.pop;
+            userInfo[msg.sender].fdInfo.pop();
             
             msg.sender.transfer(_amount);
         }
@@ -465,7 +465,7 @@ contract Bank is Ownable {
                 ownerBalance = ownerBalance.add(_ownerShare);
                 contractBalance = contractBalance.sub(_ownerShare);
                 userInfo[msg.sender].loanInfo[_loanIndex] =  userInfo[msg.sender].loanInfo[_lnCount.sub(1)];
-                userInfo[msg.sender].loanInfo.pop;
+                userInfo[msg.sender].loanInfo.pop();
             }
             
             emit RepayLoan(userInfo[msg.sender].loanInfo[_loanIndex].loanId, msg.sender, _amount);
@@ -480,9 +480,16 @@ contract Bank is Ownable {
     function cancelLoanRequest(uint256 _loanIndex) external {
         
         require(userInfo[msg.sender].loanInfo[_loanIndex].loanStatus == LnStatus.WaitingForCollateralVerification, "Invalid Loan Id");
+
+        for(uint256 i=0; i < loanIdsOfPendingRequests.length;i++){
+            if(loanIdsOfPendingRequests[i] == userInfo[msg.sender].loanInfo[_loanIndex].loanId){
+                loanIdsOfPendingRequests[i] = loanIdsOfPendingRequests.length.sub(1);
+                loanIdsOfPendingRequests.pop();
+            }
+        }
         uint256 _lnCount = userInfo[msg.sender].loanInfo.length;
         userInfo[msg.sender].loanInfo[_loanIndex] =  userInfo[msg.sender].loanInfo[_lnCount.sub(1)];
-        userInfo[msg.sender].loanInfo.pop;
+        userInfo[msg.sender].loanInfo.pop();
         
         emit CancelLoanRequest(_loanIndex, msg.sender);
     }
@@ -492,8 +499,30 @@ contract Bank is Ownable {
      * @dev Manager can view all loan requests waiting for approval.
      * @return _loans Loans waiting for approval.
      */
-    function viewLoanRequests() external returns(uint[] memory _loans) {
-        
+    function viewLoanRequests() external onlyByManager view returns(uint[] memory, address[] memory, uint256[] memory, uint256[] memory, uint256[] memory) {
+        address[] memory _userAddrs = new address[](loanIdsOfPendingRequests.length);
+        uint256[] memory _loanIds = new uint256[](loanIdsOfPendingRequests.length);
+        uint256[] memory _amounts = new uint256[](loanIdsOfPendingRequests.length);
+        uint256[] memory _durations = new uint256[](loanIdsOfPendingRequests.length);
+        uint256[] memory _interests = new uint256[](loanIdsOfPendingRequests.length);
+            
+        uint256 _lnId;
+        address _usrAdrs;
+            
+        for(uint256 i=0; i < loanIdsOfPendingRequests.length; i++ ){
+            _lnId = loanIdsOfPendingRequests[i];
+            _usrAdrs = loanIdToUser[_lnId];
+            _loanIds[i] = _lnId;
+            _userAddrs[i] = _usrAdrs;
+            for(uint256 j= 0; j < userInfo[_usrAdrs].loanInfo.length; j++ ){
+                if(userInfo[_usrAdrs].loanInfo[j].loanId == _lnId){
+                    _amounts[i] = userInfo[_usrAdrs].loanInfo[j].amount;
+                    _durations[i] = userInfo[_usrAdrs].loanInfo[j].duration;
+                    _interests[i] = userInfo[_usrAdrs].loanInfo[j].interest;
+                }
+            }
+        }
+        return(_loanIds, _userAddrs, _amounts, _durations, _interests);
     }
     
     /**
