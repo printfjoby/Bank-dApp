@@ -579,7 +579,7 @@ contract Bank is Ownable {
      * @notice Prevent new deposits.
      * @dev Prevent new deposits.
      */
-    function pauseNewDeposits() external {
+    function pauseNewDeposits() external onlyOwner {
         acceptDeposit = false;
         emit PausedNewDeposits();
     }
@@ -588,7 +588,7 @@ contract Bank is Ownable {
      * @notice Allow new deposits.
      * @dev Allow new deposits.
      */
-    function resumeNewDeposits() external {
+    function resumeNewDeposits() external onlyOwner {
         acceptDeposit = true;
         emit ResumedNewDeposits();
     }
