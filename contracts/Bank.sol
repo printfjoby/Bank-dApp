@@ -569,6 +569,7 @@ contract Bank is Ownable {
                 userInfo[_userAddrs].loanInfo[i].loanStatus = LnStatus.CrossedDeadline;
             }
         }
+        emit LoanDeadLineCrosssed(_loanId, _userAddrs);
     }
     
     /**
