@@ -589,7 +589,8 @@ contract Bank is Ownable {
      * @dev Allow new deposits.
      */
     function resumeNewDeposits() external {
-        
+        acceptDeposit = true;
+        emit ResumedNewDeposits();
     }
     
     /**
