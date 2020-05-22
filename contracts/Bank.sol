@@ -624,9 +624,10 @@ contract Bank is Ownable {
      * @notice Deposits Eth to the Bank.
      * @dev Owner deposits Eth to the Bank.
      */
-    function depositEthToBank() external payable {
+    function depositEthToBank() external onlyOwner payable {
     
-        
+        contractBalance = contractBalance.add(msg.value);
+        emit DepositEthToBank(msg.value);
     }
     
     /**
