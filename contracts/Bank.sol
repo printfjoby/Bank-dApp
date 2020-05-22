@@ -28,7 +28,7 @@ contract Bank is Ownable {
                 
         Approved, // Loan approved by Manager after collateral verification.
                 
-        RepaymetFailed // Failed to repay the loan.
+        CrossedDeadline // Failed to repay the loan.
     }
             
     
@@ -46,6 +46,8 @@ contract Bank is Ownable {
         uint256 interest; // Interest for the Loan.
             
         uint256 endTime; // Loan end time.
+        
+        uint256 repayAmountBal; // Repayment amount left.
             
         LnStatus loanStatus; //Loan status
             
@@ -122,54 +124,72 @@ contract Bank is Ownable {
     
     /**
      * @dev Emitted when User deposits an amount for a fixed duration.
+     * @param _fdId Fixed diposit Id
      * @param _userAddr User address.
      * @param _amount Deposit amount.
      * @param _tariffId Tariff Id for fixed deposit.
      */
-    event FixedDeposit(address _userAddr, uint256 _amount,uint256 _tariffId); 
+    event FixedDeposit(uint256 indexed _fdId, address _userAddr, uint256 _amount, uint256 _tariffId); 
         
     
     /**
      * @dev Emitted when User withdraws his/her fixed deposit.
+     * @param _fdId Fixed diposit Id
      * @param _userAddr User address.
      * @param _amount Amount withdrawn.
      */
-    event WithdrawFD(address _userAddr, uint256 _amount);  
+    event WithdrawFD(uint256 indexed _fdId, address _userAddr, uint256 _amount);  
         
     
     /**
      * @dev Emitted when User withdraws his/her fixed deposit before maturity period.
+     * @param _fdId Fixed diposit Id
      * @param _userAddr User address.
      * @param _amount Amount withdrawn.
      */
-    event WithdrawFDBeforeMaturity(address _userAddr, uint256 _amount);  
+    event WithdrawFDBeforeMaturity(uint256 indexed _fdId, address _userAddr, uint256 _amount);  
         
     
     /**
      * @dev Emitted when User requests for a loan.
+     * @param _loanId Loan id.
      * @param _userAddr User address.
      * @param _amount Loan amount.
      * @param _tariffId Tariff Id for Loan.
      */
-    event RequestLoan(address _userAddr, uint256 _amount, uint256 _tariffId);  
+    event RequestLoan(uint256 indexed _loanId, address _userAddr, uint256 _amount, uint256 _tariffId);  
         
     
     /**
      * @dev Emitted when User repays the loan.
+     * @param _loanId Loan id.
      * @param _userAddr User address.
-     * @param _loanId Loan Id.
      * @param _amount Repay amount.
      */
-    event RepayLoan(address _userAddr, uint256 _loanId, uint256 _amount);   
+    event RepayLoan(uint256 indexed _loanId, address _userAddr, uint256 _amount);   
+    
+    /**
+     * @dev Emitted when User failed to repay loan.
+     * @param _loanId Loan id.
+     * @param _userAddr User address.
+     */
+    event LoanDeadLineCrosssed(uint256 indexed _loanId, address _userAddr); 
+    
+    /**
+     * @dev Emitted when Loan is closed.
+     * @param _userAddr User address.
+     * @param _loanId Loan Id.
+     */
+    event LoanClosed(uint256 indexed _loanId, address _userAddr); 
         
     
     /**
      * @dev Emitted when Manager approve or reject loan.
-     * @param _userAddr User address.
      * @param _loanId Loan Id
+     * @param _userAddr User address.
      * @param _status Loan status, if `true` then loan approved else if `false` then loan rejected.
      */
-    event ApproveOrRejectLoan(address _userAddr, uint _loanId, bool _status);  
+    event ApproveOrRejectLoan(uint indexed _loanId, address _userAddr, bool _status);  
         
     
     /**
@@ -198,6 +218,7 @@ contract Bank is Ownable {
         
     /**
      * @dev Emitted when Owner deposits Eth to the Bank.
+     * @param _amount Deposit amount.
      */
     event DepositEthToBank(uint256 _amount);   
         
@@ -253,15 +274,19 @@ contract Bank is Ownable {
     
     address[] userAddress; // Array of User addresses.
     
-    address managerAddress; // Managers's Address.
+    address public managerAddress; // Managers's Address.
     
-    uint256 contractBalance; // Balance amount of the contract.
+    uint256 public contractBalance; // Balance amount of the contract.
     
-    uint256 totalFixedDiposit; // Total fixed diposit.
+    uint256 ownerBalance; // Owner Balance.
     
-    bool acceptDeposit; // User can diposit Eth only if `acceptDeposit` is `true`;
+    uint256 constant public loanInterestAmountShare = 10 ; // Loan interest amount share for owner in percent.
     
-    bool loanAvailable; // User can request Loan only if `loanAvailable` is `truw`;
+    uint256 public totalFixedDiposit; // Total fixed diposit.
+    
+    bool public acceptDeposit; // User can diposit Eth only if `acceptDeposit` is `true`;
+    
+    bool public loanAvailable; // User can request Loan only if `loanAvailable` is `truw`;
     
     LoanTariff[] lnTariff; // Loan durations and its interest rate.
     
@@ -330,10 +355,9 @@ contract Bank is Ownable {
     /**
      * @notice Send fixed diposit amount in Eth and choose a tariff.
      * @dev User deposits an amount for a fixed duration.
-     * @param _amount Deposit amount.
      * @param _tariffId Tariff id for fixed deposit.
      */
-    function fixedDeposit(uint256 _amount,uint256 _tariffId) external payable {
+    function fixedDeposit(uint256 _tariffId) external payable {
         
         if(!userInfo[msg.sender].acc_status) {
             userInfo[msg.sender].acc_status = true;
@@ -342,10 +366,11 @@ contract Bank is Ownable {
         
         userInfo[msg.sender].totalUsrFD = userInfo[msg.sender].totalUsrFD.add(msg.value);
         
+        uint256 _fdId = uint256(keccak256(abi.encodePacked(now, msg.sender)));
         userInfo[msg.sender].fdInfo.push(
             FxDptInfo(
-                uint256(keccak256(abi.encodePacked(now, msg.sender))),
-                _amount,
+                _fdId,
+                msg.value,
                 fxDptTariff[_tariffId].duration,
                 fxDptTariff[_tariffId].interest,
                 now.add(fxDptTariff[_tariffId].duration.mul(1 days) )
@@ -354,7 +379,7 @@ contract Bank is Ownable {
         contractBalance = contractBalance.add(msg.value); 
         totalFixedDiposit = totalFixedDiposit.add(msg.value);
         
-        emit FixedDeposit(msg.sender, _amount, msg.value);
+        emit FixedDeposit(_fdId, msg.sender, msg.value, _tariffId);
         
     }
     
@@ -365,7 +390,7 @@ contract Bank is Ownable {
      */
     function withdrawFD(uint256 _fdIndex) public {
         
-        uint256 _fdCount = userInfo[msg.sender].loanInfo.length;
+        uint256 _fdCount = userInfo[msg.sender].fdInfo.length;
         
         require(_fdIndex < _fdCount, "Invalid choice");
         
@@ -384,15 +409,17 @@ contract Bank is Ownable {
         require(contractBalance >= _amount, "Insufficient balance in contract");
         
         userInfo[msg.sender].totalUsrFD = userInfo[msg.sender].totalUsrFD.sub(_amount);
-        userInfo[msg.sender].fdInfo[_fdIndex] =  userInfo[msg.sender].fdInfo[_fdIndex - 1];
-        userInfo[msg.sender].fdInfo.pop;
         
         contractBalance = contractBalance.sub(_amount); 
         totalFixedDiposit = totalFixedDiposit.sub(_amount);
         
+        emit WithdrawFD(userInfo[msg.sender].fdInfo[_fdIndex].fdId,msg.sender, _amount);
+        
+        userInfo[msg.sender].fdInfo[_fdIndex] =  userInfo[msg.sender].fdInfo[_fdCount.sub(1)];
+        userInfo[msg.sender].fdInfo.pop;
+        
         msg.sender.transfer(_amount);
         
-        emit WithdrawFD(msg.sender, _amount);
     }
     
     /**
@@ -408,7 +435,7 @@ contract Bank is Ownable {
         }
         else {
         
-            uint256 _fdCount = userInfo[msg.sender].loanInfo.length;
+            uint256 _fdCount = userInfo[msg.sender].fdInfo.length;
             
             require(_fdIndex < _fdCount, "Invalid choice");
             
@@ -427,15 +454,17 @@ contract Bank is Ownable {
             require(contractBalance >= _amount, "Insufficient balance in contract");
             
             userInfo[msg.sender].totalUsrFD = userInfo[msg.sender].totalUsrFD.sub(_amount);
-            userInfo[msg.sender].fdInfo[_fdIndex] =  userInfo[msg.sender].fdInfo[_fdIndex - 1];
-            userInfo[msg.sender].fdInfo.pop;
-            
             contractBalance = contractBalance.sub(_amount); 
             totalFixedDiposit = totalFixedDiposit.sub(_amount);
             
+            emit WithdrawFDBeforeMaturity(userInfo[msg.sender].fdInfo[_fdIndex].fdId,msg.sender, _amount);
+            
+            userInfo[msg.sender].fdInfo[_fdIndex] =  userInfo[msg.sender].fdInfo[_fdCount.sub(1)];
+            userInfo[msg.sender].fdInfo.pop;
+            
             msg.sender.transfer(_amount);
             
-            emit WithdrawFDBeforeMaturity(msg.sender, _amount);
+            
         
         }
         
@@ -455,27 +484,70 @@ contract Bank is Ownable {
             userAddress.push(msg.sender);
         }
         
+        uint256 _loanId = uint256(keccak256(abi.encodePacked(now, msg.sender)));
         userInfo[msg.sender].loanInfo.push(
             LnInfo(
-                uint256(keccak256(abi.encodePacked(now, msg.sender))),
+                _loanId,
                 _amount,
                 lnTariff[_tariffId].duration,
                 lnTariff[_tariffId].interest,
                 0,
+                0,
                 LnStatus.WaitingForCollateralVerification
             ));
         
-        emit RequestLoan(msg.sender, _amount, _tariffId);
+        emit RequestLoan(_loanId,msg.sender, _amount, _tariffId);
         
     }
     
     /**
      * @notice Repay loan partially or completely.
      * @dev User repays the loan.
-     * @param _loanId Loan Id.
-     * @param _amount Repay amount.
+     * @param _loanIndex Index of this Loan.
      */
-    function repayLoan(uint256 _loanId, uint256 _amount) external payable {
+    function repayLoan(uint256 _loanIndex) external payable {
+        
+        uint256 _amount = msg.value; 
+                
+        uint256 _lnCount = userInfo[msg.sender].loanInfo.length;
+        
+        require(_loanIndex < _lnCount, "Invalid choice");
+        
+         if(userInfo[msg.sender].loanInfo[_loanIndex].endTime >= now){
+             
+            userInfo[msg.sender].loanInfo[_loanIndex].loanStatus = LnStatus.CrossedDeadline;
+            
+            emit LoanDeadLineCrosssed(userInfo[msg.sender].loanInfo[_loanIndex].loanId, msg.sender );
+        }
+        else{
+            
+            uint256 _repayAmount = userInfo[msg.sender].loanInfo[_loanIndex].repayAmountBal;
+            
+            require(_amount > _repayAmount , "Excess Payment");
+        
+            userInfo[msg.sender].loanInfo[_loanIndex].repayAmountBal = userInfo[msg.sender].loanInfo[_loanIndex].repayAmountBal.sub(_amount); 
+            
+            contractBalance = contractBalance.add(_repayAmount);
+            
+            if( _repayAmount == 0 ) {
+                emit LoanClosed(userInfo[msg.sender].loanInfo[_loanIndex].loanId, msg.sender);  
+                
+                uint256 _ownerShare = (userInfo[msg.sender].loanInfo[_loanIndex].amount
+                    .div(100)
+                    .mul(userInfo[msg.sender].loanInfo[_loanIndex].interest)
+                    )
+                    .div(100)
+                    .mul(loanInterestAmountShare); // `loaloanInterestAmountShare` percent of intrest amount
+                
+                ownerBalance = ownerBalance.add(_ownerShare);
+                contractBalance = contractBalance.sub(_ownerShare);
+                userInfo[msg.sender].loanInfo[_loanIndex] =  userInfo[msg.sender].loanInfo[_lnCount.sub(1)];
+                userInfo[msg.sender].loanInfo.pop;
+
+            }
+            
+            emit RepayLoan(userInfo[msg.sender].loanInfo[_loanIndex].loanId, msg.sender, _amount);
+        }
         
     }
     
