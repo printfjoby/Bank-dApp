@@ -562,10 +562,11 @@ contract Bank is Ownable {
      * @dev Change Loan status to deadline crossed.
      * @param _loanId Loan Id of the loan.
      */
-    function deadLineCrossed(uint256 _loanId) external {
+    function deadLineCrossed(uint256 _loanId) external onlyByManager {
         address _userAddrs = loanIdToUser[_loanId];
         for(uint256 i=0; i< userInfo[_userAddrs].loanInfo.length; i.add(1)){
-            if( userInfo[_userAddrs].loanInfo[i].loanId == _loanId){
+            if(userInfo[_userAddrs].loanInfo[i].loanId == _loanId ){
+                require(userInfo[_userAddrs].loanInfo[i].endTime <= now, "Not reached the End time" );
                 userInfo[_userAddrs].loanInfo[i].loanStatus = LnStatus.CrossedDeadline;
             }
         }
