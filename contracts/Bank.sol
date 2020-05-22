@@ -669,6 +669,16 @@ contract Bank is Ownable {
     }
     
     /**
+     * @notice Get the deposit details of an user.
+     * @dev Get the deposit details of an user.
+     * @param _userAddrs User address.
+     */
+    function getUserDepositDetails(address _userAddrs) public view returns(uint256 _balance, uint256 _totalFdAmount) {
+        _balance = userInfo[_userAddrs].balance;
+        _totalFdAmount = userInfo[_userAddrs].totalUsrFD;
+    }
+    
+    /**
      * @notice Get the loan details of an user.
      * @dev Get the loan details of an user.
      * @param _userAddrs User address.
