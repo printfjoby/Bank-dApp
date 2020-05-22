@@ -578,7 +578,8 @@ contract Bank is Ownable {
      * @dev Prevent new deposits.
      */
     function pauseNewDeposits() external {
-        
+        acceptDeposit = false;
+        emit PausedNewDeposits();
     }
     
     /**
