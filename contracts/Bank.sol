@@ -453,6 +453,8 @@ contract Bank is Ownable {
             userInfo[msg.sender].loanInfo[_loanIndex].repayAmountBal = userInfo[msg.sender].loanInfo[_loanIndex].repayAmountBal.sub(_amount); 
             contractBalance = contractBalance.add(_repayAmount);
             
+            emit RepayLoan(userInfo[msg.sender].loanInfo[_loanIndex].loanId, msg.sender, _amount);
+            
             if( _repayAmount == 0 ) {
                 emit LoanClosed(userInfo[msg.sender].loanInfo[_loanIndex].loanId, msg.sender);  
                 
@@ -461,21 +463,19 @@ contract Bank is Ownable {
                     .mul(userInfo[msg.sender].loanInfo[_loanIndex].interest)
                     )
                     .div(100)
-                    .mul(loanInterestAmountShare); // `loaloanInterestAmountShare` percent of intrest amount
+                    .mul(loanInterestAmountShare); // `loanInterestAmountShare` percent of intrest amount
                 ownerBalance = ownerBalance.add(_ownerShare);
                 contractBalance = contractBalance.sub(_ownerShare);
                 userInfo[msg.sender].loanInfo[_loanIndex] =  userInfo[msg.sender].loanInfo[_lnCount.sub(1)];
                 userInfo[msg.sender].loanInfo.pop();
             }
-            
-            emit RepayLoan(userInfo[msg.sender].loanInfo[_loanIndex].loanId, msg.sender, _amount);
         }
     }
     
     /**
      * @notice Request for a loan.
      * @dev User requests for a loan.
-     * @param _loanIndex Loan index id.
+     * @param _loanIndex `loanInfo` index id of the loan.
      */
     function cancelLoanRequest(uint256 _loanIndex) external {
         
@@ -487,11 +487,12 @@ contract Bank is Ownable {
                 loanIdsOfPendingRequests.pop();
             }
         }
+        
+        emit CancelLoanRequest(userInfo[msg.sender].loanInfo[_loanIndex].loanId, msg.sender);
+        
         uint256 _lnCount = userInfo[msg.sender].loanInfo.length;
         userInfo[msg.sender].loanInfo[_loanIndex] =  userInfo[msg.sender].loanInfo[_lnCount.sub(1)];
         userInfo[msg.sender].loanInfo.pop();
-        
-        emit CancelLoanRequest(_loanIndex, msg.sender);
     }
     
     /**
@@ -528,10 +529,32 @@ contract Bank is Ownable {
     /**
      * @notice Approve or reject loan.
      * @dev Manager approve or reject loan.
-     * @param _loanId Loan Id
+     * @param _loanId Loan Id.
+     * @param _approve `true` value indicates the approval and `false` indicates rejection.
+     * 
      */
-    function approveOrRejectLoan(uint _loanId) external {
-        
+    function approveOrRejectLoan(uint _loanId, bool _approve) external {
+        address _userAddrs = loanIdToUser[_loanId];
+        for(uint256 i = 0; i < userInfo[_userAddrs].loanInfo.length ; i.add(1)){
+            if(userInfo[_userAddrs].loanInfo[i].loanId == _loanId){
+                if(_approve){
+                    userInfo[_userAddrs].loanInfo[i].loanStatus = LnStatus.Approved;
+                }
+                else{
+                    userInfo[_userAddrs].loanInfo[i] = 
+                        userInfo[_userAddrs].loanInfo[userInfo[_userAddrs].loanInfo.length.sub(1)]; // Copy last element to current element's position.
+                    userInfo[loanIdToUser[_loanId]].loanInfo.pop(); // Remove last element
+                    
+                    for(uint256 j = 0; j < loanIdsOfPendingRequests.length; j.add(1)){
+                        if(loanIdsOfPendingRequests[i] == _loanId){
+                            loanIdsOfPendingRequests[i] = loanIdsOfPendingRequests[loanIdsOfPendingRequests.length.sub(1)]; // Copy last element to current element's position.
+                            loanIdsOfPendingRequests.pop(); // Remove last element
+                        }
+                    }
+                }
+            }
+        }
+        emit ApproveOrRejectLoan(_loanId,_userAddrs, _approve);
     }
     
     /**
