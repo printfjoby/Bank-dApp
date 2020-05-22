@@ -279,6 +279,7 @@ contract Bank is Ownable {
      */
     function deposit() external payable{
         
+        require(acceptDeposit,"Deposit function freezed by Owner");
         if(!userInfo[msg.sender].acc_status) {
             userInfo[msg.sender].acc_status = true;
             userAddress.push(msg.sender);
@@ -310,6 +311,7 @@ contract Bank is Ownable {
      */
     function fixedDeposit(uint256 _tariffId) external payable {
         
+        require(acceptDeposit,"Deposit function freezed by Owner");
         if(!userInfo[msg.sender].acc_status) {
             userInfo[msg.sender].acc_status = true;
             userAddress.push(msg.sender);
