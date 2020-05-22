@@ -558,6 +558,20 @@ contract Bank is Ownable {
     }
     
     /**
+     * @notice Change Loan status to deadline crossed.
+     * @dev Change Loan status to deadline crossed.
+     * @param _loanId Loan Id of the loan.
+     */
+    function deadLineCrossed(uint256 _loanId) external {
+        address _userAddrs = loanIdToUser[_loanId];
+        for(uint256 i=0; i< userInfo[_userAddrs].loanInfo.length; i.add(1)){
+            if( userInfo[_userAddrs].loanInfo[i].loanId == _loanId){
+                userInfo[_userAddrs].loanInfo[i].loanStatus = LnStatus.CrossedDeadline;
+            }
+        }
+    }
+    
+    /**
      * @notice Prevent new deposits.
      * @dev Prevent new deposits.
      */
