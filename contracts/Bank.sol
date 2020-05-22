@@ -158,6 +158,13 @@ contract Bank is Ownable {
      * @param _tariffId Tariff Id for Loan.
      */
     event RequestLoan(uint256 indexed _loanId, address _userAddr, uint256 _amount, uint256 _tariffId);  
+    
+    /**
+     * @dev Emitted when User cancel Loan request.
+     * @param _loanId Loan id.
+     * @param _userAddr User address.
+     */
+    event CancelLoanRequest(uint256 indexed _loanId, address _userAddr); 
         
     
     /**
@@ -562,7 +569,8 @@ contract Bank is Ownable {
         uint256 _lnCount = userInfo[msg.sender].loanInfo.length;
         userInfo[msg.sender].loanInfo[_loanIndex] =  userInfo[msg.sender].loanInfo[_lnCount.sub(1)];
         userInfo[msg.sender].loanInfo.pop;
-        //emit CancelLoanRequest(_loanId, msg.sender);
+        
+        emit CancelLoanRequest(_loanIndex, msg.sender);
         
     }
     
