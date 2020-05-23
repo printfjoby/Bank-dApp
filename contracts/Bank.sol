@@ -67,6 +67,7 @@ contract Bank is Ownable {
     // Loan tariff
     struct LoanTariff{
         
+        uint256 tariffId; // Loan tariff Id.
         uint256 duration; // Loan duration.
         uint256 interest; // Loan intrest.
     }
@@ -74,6 +75,7 @@ contract Bank is Ownable {
     // Fixed Deposit tariff
     struct FdTariff{
         
+        uint256 tariffId; // Fixed Deposit tariff Id.
         uint256 duration; // Fixed Deposit duration.
         uint256 interest; // Fixed Deposit intrest.
     }
@@ -429,7 +431,7 @@ contract Bank is Ownable {
             ));
         loanIdsOfPendingRequests.push(_loanId);
         loanIdToUser[_loanId] = msg.sender;
-        
+         
         emit RequestLoan(_loanId, msg.sender, _amount, _tariffId);
     }
     
