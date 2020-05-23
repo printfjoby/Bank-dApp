@@ -793,10 +793,15 @@ contract Bank is Ownable {
      /**
      * @notice Owner can remove a fixed deposit duration and its interest rate.
      * @dev Owner remove a fixed deposit duration and its interest rate.
-     * @param _duration Duration of fixed deposit.
+     * @param _tariffId Fixed deposit tariff.
      */
-    function removeFDDurationAndInterest(uint256 _duration) external {
-        
+    function removeFDDurationAndInterest(uint256 _tariffId) external onlyOwner {
+        for(uint256 i = 0; i < fxDptTariff.length; i++){
+            if(fxDptTariff[i].tariffId == _tariffId){
+                fxDptTariff[i] = fxDptTariff[fxDptTariff.length.sub(1)];
+                lnTariff.pop();
+            }
+        }
     }
     
      /**
