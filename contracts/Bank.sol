@@ -779,11 +779,14 @@ contract Bank is Ownable {
     /**
      * @notice Get all fixed deposit durations and their interest rates. 
      * @dev Get all fixed deposit durations and their interest rates. 
-     * @param _duration Fixed deposit duration.
-     * @param _interest Interest rate for fixed deposit.
+     * @return _duration Fixed deposit duration.
+     * @return _interest Interest rate for fixed deposit.
      */
-    function getFDDurationAndInterest() external returns (uint256 _duration, uint256 _interest) {
-        
+    function getFDDurationAndInterest() external view returns (uint256[] memory _duration, uint256[] memory _interest) {
+        for(uint256 i = 0; i < fxDptTariff.length; i++){
+            _duration[i] = fxDptTariff[i].duration;
+            _interest[i] = fxDptTariff[i].interest;
+        }
     }
     
     
