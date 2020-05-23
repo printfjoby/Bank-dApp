@@ -802,6 +802,7 @@ contract Bank is Ownable {
                 lnTariff.pop();
             }
         }
+        emit RemoveFDDurationAndInterest(_tariffId);
     }
     
      /**
