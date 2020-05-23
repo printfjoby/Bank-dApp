@@ -683,8 +683,38 @@ contract Bank is Ownable {
      * @dev Get the loan details of an user.
      * @param _userAddrs User address.
      */
-    function getUserLoanDetails(address _userAddrs) external {
+    function getUserLoanDetails(address _userAddrs) public view 
+        returns(uint256[] memory _loanIndexes, uint256[] memory _loanIds, uint256[] memory _amounts,
+        uint256[] memory _durations, uint256[] memory _interests, uint256[] memory _endTimes, uint256[] memory _loanStatus) {
+            
+        for(uint256 i=0 ; i < userInfo[_userAddrs].loanInfo.length; i++ ){
+            _loanIndexes[i] = i;
+            _loanIds[i] = userInfo[_userAddrs].loanInfo[i].loanId;
+            _amounts[i] = userInfo[_userAddrs].loanInfo[i].amount;
+            _durations[i] = userInfo[_userAddrs].loanInfo[i].duration;
+            _interests[i] = userInfo[_userAddrs].loanInfo[i].interest;
+            _endTimes[i] = userInfo[_userAddrs].loanInfo[i].endTime;
+        }
+        _loanStatus = getUserLoanStatus(_userAddrs);
+    }
+    
+    /**
+     * @notice Get the loan status of an user.
+     * @dev Get the loan status of an user.
+     * @param _userAddrs User address.
+     */
+    function getUserLoanStatus(address _userAddrs) private view returns(uint256[] memory _loanStatus){
         
+        for(uint256 i=0 ; i < userInfo[_userAddrs].loanInfo.length; i++ ){
+
+           if(userInfo[_userAddrs].loanInfo[i].loanStatus == LnStatus.WaitingForCollateralVerification) {
+                _loanStatus[i] = 1;
+            }else if(userInfo[_userAddrs].loanInfo[i].loanStatus == LnStatus.Approved) {
+                _loanStatus[i] = 2;
+            }else if(userInfo[_userAddrs].loanInfo[i].loanStatus == LnStatus.CrossedDeadline) {
+                _loanStatus[i] = 3;
+            }
+        }
     }
     
     /**
