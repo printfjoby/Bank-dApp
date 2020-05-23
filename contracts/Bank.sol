@@ -737,16 +737,13 @@ contract Bank is Ownable {
     /**
      * @notice Get all loan durations and their interest rates
      * @dev Get all loan durations and their interest rates.
-     * @param _tariffId Loan tarrif Id.
      * @return _duration Loan duration.
      * @return _interest Loan interest.
      */
-    function getLoanDurationAndInterest(uint256 _tariffId) external view returns(uint256 _duration, uint256  _interest) {
+    function getLoanDurationAndInterest() external view returns(uint256[] memory _duration, uint256[] memory  _interest) {
         for(uint256 i = 0; i < lnTariff.length; i++){
-            if(lnTariff[i].tariffId == _tariffId){
-                _duration = lnTariff[i].duration;
-                _interest = lnTariff[i].interest;
-            }
+            _duration[i] = lnTariff[i].duration;
+            _interest[i] = lnTariff[i].interest;
         }
     }
     
