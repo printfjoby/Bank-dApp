@@ -202,11 +202,12 @@ contract Bank is Ownable {
         
     /**
      * @dev Emitted when Owner sets a loan duration and its interest rate.
+     * @param _tariffId Loan tarrif Id.
      * @param _duration Loan duration.
      * @param _interest Loan interest.
      * 
      */
-    event SetLoanDurationAndInterest(uint256 _duration, uint256 _interest); 
+    event SetLoanDurationAndInterest(uint256 _tariffId, uint256 _duration, uint256 _interest);  
 
     /**
      * @dev Emitted when Owner remove a loan duration and its interest rate.
@@ -726,8 +727,11 @@ contract Bank is Ownable {
      * @param _interest Loan interest.
      * 
      */
-    function setLoanDurationAndInterest(uint256 _duration, uint256 _interest) external {
+    function setLoanDurationAndInterest(uint256 _duration, uint256 _interest) external onlyByManager{
+        uint256 _tariffId = uint256(keccak256(abi.encodePacked(now, _duration)));
+        lnTariff.push(LoanTariff(_tariffId,_duration,_interest));
         
+        emit SetLoanDurationAndInterest(_tariffId, _duration, _interest);
     }
     
     /**
