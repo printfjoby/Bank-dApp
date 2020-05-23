@@ -225,9 +225,9 @@ contract Bank is Ownable {
     
      /**
      * @dev Emitted when Owner remove a fixed deposit duration and its interest rate.
-     * @param _duration Duration of fixed deposit.
+     * @param _tariffId Fixed deposit tariff Id.
      */
-    event RemoveFDDurationAndInterest(uint256 _duration);  
+    event RemoveFDDurationAndInterest(uint256 _tariffId);  
         
      /**
      * @dev Emitted when Owner changes the manager.
