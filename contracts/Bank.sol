@@ -769,8 +769,11 @@ contract Bank is Ownable {
      * @param _duration Fixed deposit duration.
      * @param _interest Interest rate for fixed deposit.
      */
-    function setFDDurationAndInterest(uint256 _duration, uint256 _interest) external {
+    function setFDDurationAndInterest(uint256 _duration, uint256 _interest) external onlyByManager{
+        uint256 _tariffId = uint256(keccak256(abi.encodePacked(now, _duration)));
+        fxDptTariff.push(FdTariff(_tariffId,_duration,_interest));
         
+        emit SetFDDurationAndInterest(_tariffId, _duration, _interest);
     }
     
     /**
