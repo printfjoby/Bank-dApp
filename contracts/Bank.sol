@@ -216,11 +216,12 @@ contract Bank is Ownable {
     event RemoveLoanDurationAndInterest(uint256 _tariffId);
         
     /**
-     * @dev Emitted when Owner sets a Fixed deposit duration and its interest rate. 
+     * @dev Emitted when Owner sets a Fixed deposit duration and its interest rate.
+     * @param _tariffId Fixed diposit tarrif Id.
      * @param _duration of Fixed deposit.
      * @param _interest Fixed deposit interest.
      */
-    event SetFDDurationAndInterest(uint256 _duration, uint256 _interest); 
+    event SetFDDurationAndInterest(uint256 _tariffId, uint256 _duration, uint256 _interest); 
     
      /**
      * @dev Emitted when Owner remove a fixed deposit duration and its interest rate.
