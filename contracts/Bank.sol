@@ -211,9 +211,9 @@ contract Bank is Ownable {
 
     /**
      * @dev Emitted when Owner remove a loan duration and its interest rate.
-     * @param _duration Loan duration.
+     * @param _tariffId Loan tariff Id.
      */
-    event RemoveLoanDurationAndInterest(uint256 _duration);  
+    event RemoveLoanDurationAndInterest(uint256 _tariffId);
         
     /**
      * @dev Emitted when Owner sets a Fixed deposit duration and its interest rate. 
