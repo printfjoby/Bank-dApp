@@ -66,16 +66,15 @@ contract Bank is Ownable {
     
     // Loan tariff
     struct LoanTariff{
-        
-        uint256 tariffId; // Loan tariff Id.
+
         uint256 duration; // Loan duration.
         uint256 interest; // Loan intrest.
     }
     
+    
     // Fixed Deposit tariff
     struct FdTariff{
         
-        uint256 tariffId; // Fixed Deposit tariff Id.
         uint256 duration; // Fixed Deposit duration.
         uint256 interest; // Fixed Deposit intrest.
     }
@@ -246,16 +245,16 @@ contract Bank is Ownable {
     uint256 constant public loanInterestAmountShare = 10 ; // Loan interest amount share for owner in percent.
     uint256 public totalFixedDiposit; // Total fixed diposit.
     uint256[] loanIdsOfPendingRequests; // Loan ids of pending Loan requests.
+    uint256[] fdTfId; // Fixed Diposit tariff Ids.
+    uint256[] lnTfId; // Loan tariff Ids.
     
     bool public acceptDeposit; // User can diposit Eth only if `acceptDeposit` is `true`;
     bool public loanAvailable; // User can request Loan only if `loanAvailable` is `truw`;
     
-    LoanTariff[] lnTariff; // Loan durations and its interest rate.
-    FdTariff[] fxDptTariff; // Fixed Diposit durations and its interest rate.
-    
     mapping(address => UsrInfo) userInfo; // Information of User.
     mapping(uint256 => address) loanIdToUser; // Mapping from loan ids of pending Loan requests to user.
-    
+    mapping(uint256 => FdTariff) fdTfIdToInfo; // Mapping from Fixed deposit tariff Id to information(Fd duration and interest).
+    mapping(uint256 => LoanTariff) lnTfIdToInfo; // Mapping from Loan tariff Id to information(Loan duration and interest).
     
     /* Modifiers */
     
@@ -328,9 +327,9 @@ contract Bank is Ownable {
             FxDptInfo(
                 _fdId,
                 msg.value,
-                fxDptTariff[_tariffId].duration,
-                fxDptTariff[_tariffId].interest,
-                now.add(fxDptTariff[_tariffId].duration.mul(1 days) )
+                fdTfIdToInfo[_tariffId].duration,
+                fdTfIdToInfo[_tariffId].interest,
+                now.add(fdTfIdToInfo[_tariffId].duration.mul(1 days) )
             ));
         
         contractBalance = contractBalance.add(msg.value); 
@@ -425,8 +424,8 @@ contract Bank is Ownable {
             LnInfo(
                 _loanId,
                 _amount,
-                lnTariff[_tariffId].duration,
-                lnTariff[_tariffId].interest,
+                lnTfIdToInfo[_tariffId].duration,
+                lnTfIdToInfo[_tariffId].interest,
                 0,
                 0,
                 LnStatus.WaitingForCollateralVerification
@@ -479,7 +478,7 @@ contract Bank is Ownable {
         }
     }
     
-    /**
+    /** 
      * @notice Request for a loan.
      * @dev User requests for a loan.
      * @param _loanIndex `loanInfo` index id of the loan.
@@ -730,7 +729,8 @@ contract Bank is Ownable {
      */
     function setLoanDurationAndInterest(uint256 _duration, uint256 _interest) external onlyByManager{
         uint256 _tariffId = uint256(keccak256(abi.encodePacked(now, _duration)));
-        lnTariff.push(LoanTariff(_tariffId,_duration,_interest));
+        lnTfId.push(_tariffId);
+        lnTfIdToInfo[_tariffId] = LoanTariff(_duration, _interest);
         
         emit SetLoanDurationAndInterest(_tariffId, _duration, _interest);
     }
@@ -742,9 +742,9 @@ contract Bank is Ownable {
      * @return _interest Loan interest.
      */
     function getLoanDurationAndInterest() external view returns(uint256[] memory _duration, uint256[] memory  _interest) {
-        for(uint256 i = 0; i < lnTariff.length; i++){
-            _duration[i] = lnTariff[i].duration;
-            _interest[i] = lnTariff[i].interest;
+        for(uint256 i = 0; i < lnTfId.length; i++){
+            _duration[i] = lnTfIdToInfo[lnTfId[i]].duration;
+            _interest[i] = lnTfIdToInfo[lnTfId[i]].interest;
         }
     }
     
@@ -754,13 +754,13 @@ contract Bank is Ownable {
      * @param _tariffId Loan tariff Id..
      */
     function removeLoanDurationAndInterest(uint256 _tariffId) external onlyOwner {
-        for(uint256 i = 0; i < lnTariff.length; i++){
-            if(lnTariff[i].tariffId == _tariffId){
-                lnTariff[i] = lnTariff[lnTariff.length.sub(1)];
-                lnTariff.pop();
+        for(uint256 i = 0; i < lnTfId.length; i++){
+            if(lnTfId[i] == _tariffId){
+                lnTfId[i] = lnTfId[lnTfId.length.sub(1)];
+                lnTfId.pop();
             }
         }
-        emit RemoveFDDurationAndInterest(_tariffId);
+        emit RemoveLoanDurationAndInterest(_tariffId);
     }
     
     
@@ -772,8 +772,8 @@ contract Bank is Ownable {
      */
     function setFDDurationAndInterest(uint256 _duration, uint256 _interest) external onlyByManager{
         uint256 _tariffId = uint256(keccak256(abi.encodePacked(now, _duration)));
-        fxDptTariff.push(FdTariff(_tariffId,_duration,_interest));
-        
+        fdTfId.push(_tariffId);
+        fdTfIdToInfo[_tariffId] = FdTariff(_duration, _interest);
         emit SetFDDurationAndInterest(_tariffId, _duration, _interest);
     }
     
@@ -784,9 +784,9 @@ contract Bank is Ownable {
      * @return _interest Interest rate for fixed deposit.
      */
     function getFDDurationAndInterest() external view returns (uint256[] memory _duration, uint256[] memory _interest) {
-        for(uint256 i = 0; i < fxDptTariff.length; i++){
-            _duration[i] = fxDptTariff[i].duration;
-            _interest[i] = fxDptTariff[i].interest;
+        for(uint256 i = 0; i < fdTfId.length; i++){
+            _duration[i] = fdTfIdToInfo[fdTfId[i]].duration;
+            _interest[i] = fdTfIdToInfo[fdTfId[i]].interest;
         }
     }
     
@@ -797,10 +797,10 @@ contract Bank is Ownable {
      * @param _tariffId Fixed deposit tariff.
      */
     function removeFDDurationAndInterest(uint256 _tariffId) external onlyOwner {
-        for(uint256 i = 0; i < fxDptTariff.length; i++){
-            if(fxDptTariff[i].tariffId == _tariffId){
-                fxDptTariff[i] = fxDptTariff[fxDptTariff.length.sub(1)];
-                lnTariff.pop();
+        for(uint256 i = 0; i < fdTfId.length; i++){
+            if(fdTfId[i] == _tariffId){
+                fdTfId[i] = fdTfId[fdTfId.length.sub(1)];
+                fdTfId.pop();
             }
         }
         emit RemoveFDDurationAndInterest(_tariffId);
