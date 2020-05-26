@@ -547,17 +547,18 @@ contract Bank is Ownable {
             if(userInfo[_userAddrs].loanInfo[i].loanId == _loanId){
                 if(_approve){
                     userInfo[_userAddrs].loanInfo[i].loanStatus = LnStatus.Approved;
+                    payable(_userAddrs).transfer(userInfo[_userAddrs].loanInfo[i].amount);
+                    contractBalance = contractBalance.sub(userInfo[_userAddrs].loanInfo[i].amount);
                 }
                 else{
                     userInfo[_userAddrs].loanInfo[i] = 
                         userInfo[_userAddrs].loanInfo[userInfo[_userAddrs].loanInfo.length.sub(1)]; // Copy last element to current element's position.
                     userInfo[loanIdToUser[_loanId]].loanInfo.pop(); // Remove last element
-                    
-                    for(uint256 j = 0; j < loanIdsOfPendingRequests.length; j++){
-                        if(loanIdsOfPendingRequests[i] == _loanId){
-                            loanIdsOfPendingRequests[i] = loanIdsOfPendingRequests[loanIdsOfPendingRequests.length.sub(1)]; // Copy last element to current element's position.
-                            loanIdsOfPendingRequests.pop(); // Remove last element
-                        }
+                }
+                for(uint256 j = 0; j < loanIdsOfPendingRequests.length; j++){
+                    if(loanIdsOfPendingRequests[i] == _loanId){
+                        loanIdsOfPendingRequests[i] = loanIdsOfPendingRequests[loanIdsOfPendingRequests.length.sub(1)]; // Copy last element to current element's position.
+                        loanIdsOfPendingRequests.pop(); // Remove last element
                     }
                 }
             }
