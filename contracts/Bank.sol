@@ -355,8 +355,9 @@ contract Bank is Ownable {
             .add((now.sub(userInfo[msg.sender].fdInfo[_fdIndex].endTime))
             .div(1 days));
         uint256 _amount =  userInfo[msg.sender].fdInfo[_fdIndex].amount;
-        _amount = _amount.add(_amount.div(100).mul(_interest));
-        _amount = _amount.div(365).mul(_numOfDays);
+        uint256 _interestAmt = (_amount.div(100).mul(_interest)).div(365); // Interest Amount for 1 day.
+        _interestAmt = _interestAmt.mul(_numOfDays);
+        _amount = _amount.add(_interestAmt);
         
         uint256 _fdId = userInfo[msg.sender].fdInfo[_fdIndex].fdId;
         
