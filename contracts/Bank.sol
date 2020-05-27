@@ -358,17 +358,19 @@ contract Bank is Ownable {
         _amount = _amount.add(_amount.div(100).mul(_interest));
         _amount = _amount.div(365).mul(_numOfDays);
         
+        uint256 _fdId = userInfo[msg.sender].fdInfo[_fdIndex].fdId;
+        
         require(contractBalance >= _amount, "Insufficient balance in contract");
         userInfo[msg.sender].totalUsrFD = userInfo[msg.sender].totalUsrFD.sub(_amount);
         contractBalance = contractBalance.sub(_amount); 
         totalFixedDiposit = totalFixedDiposit.sub(_amount);
-        
-        emit WithdrawFD(userInfo[msg.sender].fdInfo[_fdIndex].fdId,msg.sender, _amount);
-        
+    
         userInfo[msg.sender].fdInfo[_fdIndex] =  userInfo[msg.sender].fdInfo[_fdCount.sub(1)];
         userInfo[msg.sender].fdInfo.pop();
         
         msg.sender.transfer(_amount);
+        
+        emit WithdrawFD(_fdId, msg.sender, _amount);
     }
     
     /**
