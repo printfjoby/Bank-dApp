@@ -50,7 +50,7 @@ contract Bank is Ownable {
         uint256 fdId; // Fixied deposit Id.
         uint256 amount; // Fixed Deposit amount.
         uint256 duration; // Duration of Fixed Deposit in Days.
-        uint256 interest; // Interest for the Fixed Diposit.
+        uint256 interest; // Interest for the Fixed Deposit.
         uint256 endTime; // Fixed Deposit end time.
     }
      
@@ -59,7 +59,7 @@ contract Bank is Ownable {
         
         bool acc_status; // Account status. `true` value denoted existing user.
         uint256 balance; // Balance amount.
-        uint256 totalUsrFD; // Sum total of all Fixed Diposit.
+        uint256 totalUsrFD; // Sum total of all Fixed Deposit.
         LnInfo[] loanInfo; // Store details of all Loans of an User.
         FxDptInfo[] fdInfo; // Store details of all Fixed Deposits of an User.
     }
@@ -243,12 +243,12 @@ contract Bank is Ownable {
     uint256 public contractBalance; // Balance amount of the contract.
     uint256 ownerBalance; // Owner Balance.
     uint256 constant public loanInterestAmountShare = 10 ; // Loan interest amount share for owner in percent.
-    uint256 public totalFixedDeposit; // Total fixed diposit.
+    uint256 public totalFixedDeposit; // Total fixed deposit.
     uint256[] loanIdsOfPendingRequests; // Loan ids of pending Loan requests.
-    uint256[] fdTfId; // Fixed Diposit tariff Ids.
+    uint256[] fdTfId; // Fixed Deposit tariff Ids.
     uint256[] lnTfId; // Loan tariff Ids.
     
-    bool public acceptDeposit; // User can diposit Eth only if `acceptDeposit` is `true`;
+    bool public acceptDeposit; // User can deposit Eth only if `acceptDeposit` is `true`;
     bool public loanAvailable; // User can request Loan only if `loanAvailable` is `truw`;
     
     mapping(address => UsrInfo) userInfo; // Information of User.
@@ -309,7 +309,7 @@ contract Bank is Ownable {
     }
     
     /**
-     * @notice Send fixed diposit amount in Eth and choose a tariff.
+     * @notice Send fixed deposit amount in Eth and choose a tariff.
      * @dev User deposits an amount for a fixed duration.
      * @param _tariffId Tariff id for fixed deposit.
      */
