@@ -252,7 +252,7 @@ contract Bank is Ownable {
     
     mapping(address => UsrInfo) userInfo; // Information of User.
     mapping(uint256 => address) loanIdToUser; // Mapping from loan ids of pending Loan requests to user.
-    mapping(uint256 => FdTariff) fdTfIdToInfo; // Mapping from Fixed deposit tariff Id to information(Fd duration and interest).
+    mapping(uint256 => FdTariff) fdTariffIdToInfo; // Mapping from Fixed deposit tariff Id to information(Fd duration and interest).
     mapping(uint256 => LoanTariff) lnTfIdToInfo; // Mapping from Loan tariff Id to information(Loan duration and interest).
     
     /* Modifiers */
@@ -327,9 +327,9 @@ contract Bank is Ownable {
             FxDptInfo(
                 _fdId,
                 msg.value,
-                fdTfIdToInfo[_tariffId].duration,
-                fdTfIdToInfo[_tariffId].interest,
-                now.add(fdTfIdToInfo[_tariffId].duration.mul(1 days) )
+                fdTariffIdToInfo[_tariffId].duration,
+                fdTariffIdToInfo[_tariffId].interest,
+                now.add(fdTariffIdToInfo[_tariffId].duration.mul(1 days) )
             ));
         
         contractBalance = contractBalance.add(msg.value); 
@@ -780,7 +780,7 @@ contract Bank is Ownable {
     function setFDDurationAndInterest(uint256 _duration, uint256 _interest) external onlyByManager{
         uint256 _tariffId = uint256(keccak256(abi.encodePacked(now, _duration)));
         fdTfId.push(_tariffId);
-        fdTfIdToInfo[_tariffId] = FdTariff(_duration, _interest);
+        fdTariffIdToInfo[_tariffId] = FdTariff(_duration, _interest);
         emit SetFDDurationAndInterest(_tariffId, _duration, _interest);
     }
     
@@ -792,8 +792,8 @@ contract Bank is Ownable {
      */
     function getFDDurationAndInterest() external view returns (uint256[] memory _duration, uint256[] memory _interest) {
         for(uint256 i = 0; i < fdTfId.length; i++){
-            _duration[i] = fdTfIdToInfo[fdTfId[i]].duration;
-            _interest[i] = fdTfIdToInfo[fdTfId[i]].interest;
+            _duration[i] = fdTariffIdToInfo[fdTfId[i]].duration;
+            _interest[i] = fdTariffIdToInfo[fdTfId[i]].interest;
         }
     }
     
