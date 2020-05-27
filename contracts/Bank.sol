@@ -301,8 +301,9 @@ contract Bank is Ownable {
     function withdraw(uint256 _amount) external {
         
         require(userInfo[msg.sender].balance >= _amount, "Insufficient Balance");
-        msg.sender.transfer(_amount);
         userInfo[msg.sender].balance = userInfo[msg.sender].balance.sub(_amount);
+        contractBalance = contractBalance.sub(_amount);
+        msg.sender.transfer(_amount);
         
         emit Withdraw(msg.sender, _amount);
     }
