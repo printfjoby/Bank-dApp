@@ -760,7 +760,7 @@ contract Bank is Ownable {
      * @dev Owner remove a loan duration and its interest rate.
      * @param _tariffId Loan tariff Id..
      */
-    function removeLoanDurationAndInterest(uint256 _tariffId) external onlyOwner {
+    function removeLoanDurationAndInterest(uint256 _tariffId) external onlyByManager {
         for(uint256 i = 0; i < lnTfId.length; i++){
             if(lnTfId[i] == _tariffId){
                 lnTfId[i] = lnTfId[lnTfId.length.sub(1)];
