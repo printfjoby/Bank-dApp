@@ -236,24 +236,24 @@ contract Bank is Ownable {
     
      /* Storage */
     
-    address[] userAddress; // Array of User addresses.
+    address[] private userAddress; // Array of User addresses.
     address public managerAddress; // Managers's Address.
     
     uint256 public contractBalance; // Balance amount of the contract.
-    uint256 ownerBalance; // Owner Balance.
+    uint256 private ownerBalance; // Owner Balance.
     uint256 constant public loanInterestAmountShare = 10 ; // Loan interest amount share for owner in percent.
     uint256 public totalFixedDeposit; // Total fixed deposit.
-    uint256[] loanIdsOfPendingRequests; // Loan ids of pending Loan requests.
-    uint256[] fdTfId; // Fixed Deposit tariff Ids.
-    uint256[] lnTfId; // Loan tariff Ids.
+    uint256[] public loanIdsOfPendingRequests; // Loan ids of pending Loan requests.
+    uint256[] public fdTfId; // Fixed Deposit tariff Ids.
+    uint256[] public lnTfId; // Loan tariff Ids.
     
     bool public acceptDeposit; // User can deposit Eth only if `acceptDeposit` is `true`;
     bool public loanAvailable; // User can request Loan only if `loanAvailable` is `truw`;
     
-    mapping(address => UsrInfo) userInfo; // Information of User.
-    mapping(uint256 => address) loanIdToUser; // Mapping from loan ids of pending Loan requests to user.
-    mapping(uint256 => FdTariff) fdTariffIdToInfo; // Mapping from Fixed deposit tariff Id to information(Fd duration and interest).
-    mapping(uint256 => LoanTariff) lnTfIdToInfo; // Mapping from Loan tariff Id to information(Loan duration and interest).
+    mapping(address => UsrInfo) public userInfo; // Information of User.
+    mapping(uint256 => address) public loanIdToUser; // Mapping from loan ids of pending Loan requests to user.
+    mapping(uint256 => FdTariff) public fdTariffIdToInfo; // Mapping from Fixed deposit tariff Id to information(Fd duration and interest).
+    mapping(uint256 => LoanTariff) public lnTfIdToInfo; // Mapping from Loan tariff Id to information(Loan duration and interest).
     
     /* Modifiers */
     
