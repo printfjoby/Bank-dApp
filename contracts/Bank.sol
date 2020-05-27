@@ -253,7 +253,7 @@ contract Bank is Ownable {
     mapping(address => UsrInfo) public userInfo; // Information of User.
     mapping(uint256 => address) public loanIdToUser; // Mapping from loan ids of pending Loan requests to user.
     mapping(uint256 => FdTariff) public fdTariffIdToInfo; // Mapping from Fixed deposit tariff Id to information(Fd duration and interest).
-    mapping(uint256 => LoanTariff) public lnTfIdToInfo; // Mapping from Loan tariff Id to information(Loan duration and interest).
+    mapping(uint256 => LoanTariff) public lnTariffIdToInfo; // Mapping from Loan tariff Id to information(Loan duration and interest).
     
     /* Modifiers */
     
@@ -430,8 +430,8 @@ contract Bank is Ownable {
             LnInfo(
                 _loanId,
                 _amount,
-                lnTfIdToInfo[_tariffId].duration,
-                lnTfIdToInfo[_tariffId].interest,
+                lnTariffIdToInfo[_tariffId].duration,
+                lnTariffIdToInfo[_tariffId].interest,
                 0,
                 0,
                 LnStatus.WaitingForCollateralVerification
@@ -737,7 +737,7 @@ contract Bank is Ownable {
     function setLoanDurationAndInterest(uint256 _duration, uint256 _interest) external onlyByManager{
         uint256 _tariffId = uint256(keccak256(abi.encodePacked(now, _duration)));
         lnTfId.push(_tariffId);
-        lnTfIdToInfo[_tariffId] = LoanTariff(_duration, _interest);
+        lnTariffIdToInfo[_tariffId] = LoanTariff(_duration, _interest);
         
         emit SetLoanDurationAndInterest(_tariffId, _duration, _interest);
     }
@@ -750,8 +750,8 @@ contract Bank is Ownable {
      */
     function getLoanDurationAndInterest() external view returns(uint256[] memory _duration, uint256[] memory  _interest) {
         for(uint256 i = 0; i < lnTfId.length; i++){
-            _duration[i] = lnTfIdToInfo[lnTfId[i]].duration;
-            _interest[i] = lnTfIdToInfo[lnTfId[i]].interest;
+            _duration[i] = lnTariffIdToInfo[lnTfId[i]].duration;
+            _interest[i] = lnTariffIdToInfo[lnTfId[i]].interest;
         }
     }
     
