@@ -419,7 +419,7 @@ contract Bank is Ownable {
             userAddress.push(msg.sender);
         }
         
-        uint256 _loanId = uint256(keccak256(abi.encodePacked(now, msg.sender)));
+         uint256 _loanId = uint256(keccak256(abi.encodePacked(now, msg.sender)));
         userInfo[msg.sender].loanInfo.push(
             LnInfo(
                 _loanId,
@@ -438,7 +438,7 @@ contract Bank is Ownable {
     
     /**
      * @notice Repay loan partially or completely.
-     * @dev User repays the loan.
+      * @dev User repays the loan.
      * @param _loanIndex Index of this Loan.
      */
     function repayLoan(uint256 _loanIndex) external payable {
@@ -818,4 +818,14 @@ contract Bank is Ownable {
         
     }
     
+         /**
+     * @notice Manager can get addresses of all Users. 
+     * @dev Manager can get addresses of all Users
+     * @return _userAddrs Addresses of all Users.
+     */
+     
+    function getAllUsers() external view onlyByManager returns(address[] memory _userAddrs) {
+        
+        _userAddrs = userAddress;
+    }
 }
