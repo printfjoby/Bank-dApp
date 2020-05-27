@@ -1,18 +1,17 @@
 // SPDX-License-Identifier: UNLICENSED
 
 pragma solidity ^0.6.0;
-
-    /**
-     * @title Decentralized Bank
-     * @author Joby Augustine
-     * @notice You use this contract for banking operations. 
-     * @dev The main Bank contract for banking operations.
-     */
      
 /* Imports */
 import "./SafeMath.sol"; 
 import "./ownable.sol";
      
+/**
+ * @author Joby Augustine
+ * @notice You use this contract for banking operations. 
+ * @dev The main Bank contract for banking operations.
+ * @title Decentralized Bank
+ */     
 /*Contract */
 contract Bank is Ownable {
     
@@ -67,7 +66,7 @@ contract Bank is Ownable {
     // Loan tariff
     struct LoanTariff{
 
-        uint256 duration; // Loan duration.
+        uint256 duration; // Loan duration in Days.
         uint256 interest; // Loan intrest.
     }
     
@@ -75,7 +74,7 @@ contract Bank is Ownable {
     // Fixed Deposit tariff
     struct FdTariff{
         
-        uint256 duration; // Fixed Deposit duration.
+        uint256 duration; // Fixed Deposit duration in Days.
         uint256 interest; // Fixed Deposit intrest.
     }
     
