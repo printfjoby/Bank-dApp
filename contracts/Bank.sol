@@ -803,7 +803,7 @@ contract Bank is Ownable {
      * @dev Owner remove a fixed deposit duration and its interest rate.
      * @param _tariffId Fixed deposit tariff.
      */
-    function removeFDDurationAndInterest(uint256 _tariffId) external onlyOwner {
+    function removeFDDurationAndInterest(uint256 _tariffId) external onlyByManager {
         for(uint256 i = 0; i < fdTfId.length; i++){
             if(fdTfId[i] == _tariffId){
                 fdTfId[i] = fdTfId[fdTfId.length.sub(1)];
