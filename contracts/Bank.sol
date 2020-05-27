@@ -243,7 +243,7 @@ contract Bank is Ownable {
     uint256 public contractBalance; // Balance amount of the contract.
     uint256 ownerBalance; // Owner Balance.
     uint256 constant public loanInterestAmountShare = 10 ; // Loan interest amount share for owner in percent.
-    uint256 public totalFixedDiposit; // Total fixed diposit.
+    uint256 public totalFixedDeposit; // Total fixed diposit.
     uint256[] loanIdsOfPendingRequests; // Loan ids of pending Loan requests.
     uint256[] fdTfId; // Fixed Diposit tariff Ids.
     uint256[] lnTfId; // Loan tariff Ids.
@@ -334,7 +334,7 @@ contract Bank is Ownable {
             ));
         
         contractBalance = contractBalance.add(msg.value); 
-        totalFixedDiposit = totalFixedDiposit.add(msg.value);
+        totalFixedDeposit = totalFixedDeposit.add(msg.value);
         
         emit FixedDeposit(_fdId, msg.sender, msg.value, _tariffId);
     }
@@ -363,7 +363,7 @@ contract Bank is Ownable {
         require(contractBalance >= _amount, "Insufficient balance in contract");
         userInfo[msg.sender].totalUsrFD = userInfo[msg.sender].totalUsrFD.sub(_amount);
         contractBalance = contractBalance.sub(_amount); 
-        totalFixedDiposit = totalFixedDiposit.sub(_amount);
+        totalFixedDeposit = totalFixedDeposit.sub(_amount);
     
         userInfo[msg.sender].fdInfo[_fdIndex] =  userInfo[msg.sender].fdInfo[_fdCount.sub(1)];
         userInfo[msg.sender].fdInfo.pop();
@@ -398,7 +398,7 @@ contract Bank is Ownable {
             require(contractBalance >= _amount, "Insufficient balance in contract");
             userInfo[msg.sender].totalUsrFD = userInfo[msg.sender].totalUsrFD.sub(_amount);
             contractBalance = contractBalance.sub(_amount); 
-            totalFixedDiposit = totalFixedDiposit.sub(_amount);
+            totalFixedDeposit = totalFixedDeposit.sub(_amount);
             
             uint256 _fdId = userInfo[msg.sender].fdInfo[_fdIndex].fdId;
             
