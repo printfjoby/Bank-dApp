@@ -375,7 +375,7 @@ contract Bank is Ownable {
     
     /**
      * @notice Withdraw fixed deposit before maturity period.
-     * @dev User withdraws his/her fixed deposit before maturity period with penality of 5 percent of the FD.
+     * @dev User withdraws his/her fixed deposit before maturity period with penality of 5 percent of the FD Interest.
      * @param _fdIndex Index of the Fixed deposit to be withdrawn.
      */
     function withdrawFDBeforeMaturity(uint256 _fdIndex) external {
@@ -390,21 +390,24 @@ contract Bank is Ownable {
             uint256 _interest =  userInfo[msg.sender].fdInfo[_fdIndex].interest;
             uint256 _numOfDays = (userInfo[msg.sender].fdInfo[_fdIndex].endTime.sub(now)).div(1 days);
             uint256 _amount =  userInfo[msg.sender].fdInfo[_fdIndex].amount;
-            _amount = _amount.add(_amount.div(100).mul(_interest));
-            _amount = _amount.div(365).mul(_numOfDays);
-            _amount = _amount.sub(_amount.div(100).mul(5)); // Penality deducted.
+            uint256 _interestAmt = (_amount.div(100).mul(_interest)).div(365); // Interest Amount for 1 day.
+            _interestAmt = _interestAmt.mul(_numOfDays);
+            _amount = _amount.add(_interestAmt);
+            _amount = _amount.sub(_interestAmt.div(100).mul(5)); // Penality deducted.
             
             require(contractBalance >= _amount, "Insufficient balance in contract");
             userInfo[msg.sender].totalUsrFD = userInfo[msg.sender].totalUsrFD.sub(_amount);
             contractBalance = contractBalance.sub(_amount); 
             totalFixedDiposit = totalFixedDiposit.sub(_amount);
             
-            emit WithdrawFDBeforeMaturity(userInfo[msg.sender].fdInfo[_fdIndex].fdId,msg.sender, _amount);
+            uint256 _fdId = userInfo[msg.sender].fdInfo[_fdIndex].fdId;
             
             userInfo[msg.sender].fdInfo[_fdIndex] =  userInfo[msg.sender].fdInfo[_fdCount.sub(1)];
             userInfo[msg.sender].fdInfo.pop();
             
             msg.sender.transfer(_amount);
+            
+            emit WithdrawFDBeforeMaturity(_fdId, msg.sender, _amount);
         }
     }
     
