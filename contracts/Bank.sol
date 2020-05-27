@@ -84,88 +84,88 @@ contract Bank is Ownable {
     
     /**
      * @dev Emitted when User deposits to his/her account.
-     * @param _userAddr User address.
-     * @param _amount Amount deposited.
+     * @param userAddr User address.
+     * @param amount Amount deposited.
      */
-    event Deposit(address _userAddr, uint _amount);  
+    event Deposit(address indexed userAddr, uint amount);  
     
     /**
      * @dev Emitted when User withdraws from his/her account.
-     * @param _userAddr User address.
-     * @param _amount Amount withdrawn.
+     * @param userAddr User address.
+     * @param amount Amount withdrawn.
      */
-    event Withdraw(address _userAddr, uint256 _amount);  
+    event Withdraw(address indexed userAddr, uint256 amount);  
     
     /**
      * @dev Emitted when User deposits an amount for a fixed duration.
-     * @param _fdId Fixed diposit Id
-     * @param _userAddr User address.
-     * @param _amount Deposit amount.
-     * @param _tariffId Tariff Id for fixed deposit.
+     * @param fdId Fixed deposit Id
+     * @param userAddr User address.
+     * @param amount Deposit amount.
+     * @param tariffId Tariff Id for fixed deposit.
      */
-    event FixedDeposit(uint256 indexed _fdId, address _userAddr, uint256 _amount, uint256 _tariffId); 
+    event FixedDeposit(uint256 indexed fdId, address userAddr, uint256 amount, uint256 tariffId); 
         
     /**
      * @dev Emitted when User withdraws his/her fixed deposit.
-     * @param _fdId Fixed diposit Id
-     * @param _userAddr User address.
-     * @param _amount Amount withdrawn.
+     * @param fdId Fixed deposit Id
+     * @param userAddr User address.
+     * @param amount Amount withdrawn.
      */
-    event WithdrawFD(uint256 indexed _fdId, address _userAddr, uint256 _amount);  
+    event WithdrawFD(uint256 indexed fdId, address userAddr, uint256 amount);  
         
     /**
      * @dev Emitted when User withdraws his/her fixed deposit before maturity period.
-     * @param _fdId Fixed diposit Id
-     * @param _userAddr User address.
-     * @param _amount Amount withdrawn.
+     * @param fdId Fixed deposit Id
+     * @param userAddr User address.
+     * @param amount Amount withdrawn.
      */
-    event WithdrawFDBeforeMaturity(uint256 indexed _fdId, address _userAddr, uint256 _amount);  
+    event WithdrawFDBeforeMaturity(uint256 indexed fdId, address userAddr, uint256 amount);  
         
     /**
      * @dev Emitted when User requests for a loan.
-     * @param _loanId Loan id.
-     * @param _userAddr User address.
-     * @param _amount Loan amount.
-     * @param _tariffId Tariff Id for Loan.
+     * @param loanId Loan id.
+     * @param userAddr User address.
+     * @param amount Loan amount.
+     * @param tariffId Tariff Id for Loan.
      */
-    event RequestLoan(uint256 indexed _loanId, address _userAddr, uint256 _amount, uint256 _tariffId);  
+    event RequestLoan(uint256 indexed loanId, address userAddr, uint256 amount, uint256 tariffId);  
     
     /**
      * @dev Emitted when User cancel Loan request.
-     * @param _loanId Loan id.
-     * @param _userAddr User address.
+     * @param loanId Loan id.
+     * @param userAddr User address.
      */
-    event CancelLoanRequest(uint256 indexed _loanId, address _userAddr); 
+    event CancelLoanRequest(uint256 indexed loanId, address userAddr); 
         
     /**
      * @dev Emitted when User repays the loan.
-     * @param _loanId Loan id.
-     * @param _userAddr User address.
-     * @param _amount Repay amount.
+     * @param loanId Loan id.
+     * @param userAddr User address.
+     * @param amount Repay amount.
      */
-    event RepayLoan(uint256 indexed _loanId, address _userAddr, uint256 _amount);   
+    event RepayLoan(uint256 indexed loanId, address userAddr, uint256 amount);   
     
     /**
      * @dev Emitted when User failed to repay loan.
-     * @param _loanId Loan id.
-     * @param _userAddr User address.
+     * @param loanId Loan id.
+     * @param userAddr User address.
      */
-    event LoanDeadLineCrosssed(uint256 indexed _loanId, address _userAddr); 
+    event LoanDeadLineCrosssed(uint256 indexed loanId, address userAddr); 
     
     /**
      * @dev Emitted when Loan is closed.
-     * @param _userAddr User address.
-     * @param _loanId Loan Id.
+     * @param userAddr User address.
+     * @param loanId Loan Id.
      */
-    event LoanClosed(uint256 indexed _loanId, address _userAddr); 
+    event LoanClosed(uint256 indexed loanId, address userAddr); 
         
     /**
      * @dev Emitted when Manager approve or reject loan.
-     * @param _loanId Loan Id
-     * @param _userAddr User address.
-     * @param _status Loan status, if `true` then loan approved else if `false` then loan rejected.
+     * @param loanId Loan Id
+     * @param userAddr User address.
+     * @param status Loan status, if `true` then loan approved else if `false` then loan rejected.
      */
-    event ApproveOrRejectLoan(uint indexed _loanId, address _userAddr, bool _status);  
+    event ApproveOrRejectLoan(uint indexed loanId, address userAddr, bool status);  
         
     /**
      * @dev Emitted when new deposits are freezed.
@@ -189,50 +189,50 @@ contract Bank is Ownable {
         
     /**
      * @dev Emitted when Owner deposits Eth to the Bank.
-     * @param _amount Deposit amount.
+     * @param amount Deposit amount.
      */
-    event DepositEthToBank(uint256 _amount);   
+    event DepositEthToBank(uint256 amount);   
         
     /**
      * @dev Emitted when Owner withdraws profit.
-     * @param _amount Withdraw amount.
+     * @param amount Withdraw amount.
      */
-    event OwnerWithdraw(uint256 _amount);  
+    event OwnerWithdraw(uint256 amount);  
         
     /**
      * @dev Emitted when Owner sets a loan duration and its interest rate.
-     * @param _tariffId Loan tarrif Id.
-     * @param _duration Loan duration.
-     * @param _interest Loan interest.
+     * @param tariffId Loan tarrif Id.
+     * @param duration Loan duration.
+     * @param interest Loan interest.
      * 
      */
-    event SetLoanDurationAndInterest(uint256 _tariffId, uint256 _duration, uint256 _interest);  
+    event SetLoanDurationAndInterest(uint256 tariffId, uint256 duration, uint256 interest);  
 
     /**
      * @dev Emitted when Owner remove a loan duration and its interest rate.
-     * @param _tariffId Loan tariff Id.
+     * @param tariffId Loan tariff Id.
      */
-    event RemoveLoanDurationAndInterest(uint256 _tariffId);
+    event RemoveLoanDurationAndInterest(uint256 tariffId);
         
     /**
      * @dev Emitted when Owner sets a Fixed deposit duration and its interest rate.
-     * @param _tariffId Fixed diposit tarrif Id.
-     * @param _duration of Fixed deposit.
-     * @param _interest Fixed deposit interest.
+     * @param tariffId Fixed deposit tarrif Id.
+     * @param duration of Fixed deposit.
+     * @param interest Fixed deposit interest.
      */
-    event SetFDDurationAndInterest(uint256 _tariffId, uint256 _duration, uint256 _interest); 
+    event SetFDDurationAndInterest(uint256 tariffId, uint256 duration, uint256 interest); 
     
      /**
      * @dev Emitted when Owner remove a fixed deposit duration and its interest rate.
-     * @param _tariffId Fixed deposit tariff Id.
+     * @param tariffId Fixed deposit tariff Id.
      */
-    event RemoveFDDurationAndInterest(uint256 _tariffId);  
+    event RemoveFDDurationAndInterest(uint256 tariffId);  
         
      /**
      * @dev Emitted when Owner changes the manager.
-     * @param _managerAddrs Manager's address.
+     * @param managerAddrs Manager's address.
      */
-    event SetManager(address _managerAddrs);  
+    event SetManager(address managerAddrs);  
         
     
      /* Storage */
