@@ -647,8 +647,11 @@ contract Bank is Ownable {
      */
     function ownerWithdraw(uint256 _amount) external onlyOwner {
         
+        address _owner = owner();
         contractBalance = contractBalance.sub(_amount);
         ownerBalance = ownerBalance.sub(_amount);
+        payable(_owner).transfer(_amount);
+        
         emit OwnerWithdraw(_amount);
     }
     
