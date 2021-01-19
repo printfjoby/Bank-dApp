@@ -467,7 +467,7 @@ contract Bank is Ownable {
             
             emit RepayLoan(userInfo[msg.sender].loanInfo[_loanIndex].loanId, msg.sender, _amount);
             
-            if( _repayAmount == 0 ) {
+            if( userInfo[msg.sender].loanInfo[_loanIndex].repayAmountBal == 0 ) {
                 emit LoanClosed(userInfo[msg.sender].loanInfo[_loanIndex].loanId, msg.sender);  
                 
                 uint256 _ownerShare = (userInfo[msg.sender].loanInfo[_loanIndex].amount
