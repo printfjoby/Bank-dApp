@@ -790,13 +790,13 @@ contract Bank is Ownable {
         uint256 _tariffId = uint256(keccak256(abi.encodePacked(now, _duration)));
         fdTfId.push(_tariffId);
         fdTariffIdToInfo[_tariffId] = FdTariff(_duration, _interest);
-        fdTariffIdToFdTfIdIndex[_tariffId] = fdTfId.length.sub(1);;
+        fdTariffIdToFdTfIdIndex[_tariffId] = fdTfId.length.sub(1);
 
         emit SetFDDurationAndInterest(_tariffId, _duration, _interest);
     }
     
     /**
-     * @notice Get all fixed deposit durations and their interest rates. 
+     * @notice Get all fixed deposit durations and their interest rates.
      * @dev Get all fixed deposit durations and their interest rates. 
      * @param _cursor Starting value of the index that is to be fetched from fdTariffToInfo array.
      * @param _count Number of tariff that is to be fetched from  fdTariffToInfo array. In order to fetch entire array, set count to zero or a number higher than the last index of the array. 
