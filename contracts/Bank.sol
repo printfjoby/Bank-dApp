@@ -228,17 +228,25 @@ contract Bank is Ownable {
      */
     event RemoveFDDurationAndInterest(uint256 tariffId);  
         
+    /**
+     * @dev Emitted when Owner increases reserve balance.
+     * @param reserveBalance New reserve balance amount.
+     */
+    event IncreaseReserveBalance(uint256 reserveBalance );  
+
      /**
      * @dev Emitted when Owner changes the manager.
      * @param managerAddrs Manager's address.
      */
     event SetManager(address managerAddrs);  
+
         
     
      /* Storage */
     
     address[] userAddress; // Array of User addresses.
     address public managerAddress; // Managers's Address.
+    uint256 reserveBalance; // Reserve balance that is to be maintained in the contract.
     
     uint256 public contractBalance; // Balance amount of the contract.
     uint256 private ownerBalance; // Owner Balance.
@@ -272,9 +280,14 @@ contract Bank is Ownable {
     
     
     /*Constructor */
+
+    /** @dev Constructs the Bank contract.
+     *  @param _reserveBalance Reserve balance that is to be maintained in the contract.
+     */
     
-    constructor () public {
+    constructor (uint256 _reserveBalance) public {
         
+        reserveBalance = _reserveBalance;
     }
     
     
@@ -288,6 +301,7 @@ contract Bank is Ownable {
     function deposit() external payable{
         
         require(acceptDeposit,"Deposit function freezed by Owner");
+
         if(!userInfo[msg.sender].acc_status) {
             userInfo[msg.sender].acc_status = true;
             userAddress.push(msg.sender);
@@ -306,6 +320,8 @@ contract Bank is Ownable {
     function withdraw(uint256 _amount) external {
         
         require(userInfo[msg.sender].balance >= _amount, "Insufficient Balance");
+        require(contractBalance >= _amount, "Insufficient Contract Balance");
+
         userInfo[msg.sender].balance = userInfo[msg.sender].balance.sub(_amount);
         contractBalance = contractBalance.sub(_amount);
         msg.sender.transfer(_amount);
@@ -321,6 +337,7 @@ contract Bank is Ownable {
     function fixedDeposit(uint256 _tariffId) external payable {
         
         require(acceptDeposit,"Deposit function freezed by Owner");
+
         if(!userInfo[msg.sender].acc_status) {
             userInfo[msg.sender].acc_status = true;
             userAddress.push(msg.sender);
@@ -432,6 +449,10 @@ contract Bank is Ownable {
         }
         
         uint256 _loanId = uint256(keccak256(abi.encodePacked(now, msg.sender)));
+        uint256 _repayAmountBal = _amount.add(
+            (_amount.div(100).mul(lnTariffIdToInfo[_tariffId].interest))
+            .div(365).mul(lnTariffIdToInfo[_tariffId].duration)
+            );
         userInfo[msg.sender].loanInfo.push(
             LnInfo(
                 _loanId,
@@ -439,14 +460,14 @@ contract Bank is Ownable {
                 lnTariffIdToInfo[_tariffId].duration,
                 lnTariffIdToInfo[_tariffId].interest,
                 0,
-                0,
+                _repayAmountBal,
                 LnStatus.WaitingForCollateralVerification
             ));
-        loanIdToUserLoanInfoIndex[_loanId] = userInfo[msg.sender].loanInfo.length;
+        loanIdToUserLoanInfoIndex[_loanId] = userInfo[msg.sender].loanInfo.length.sub(1);
         loanIdToUser[_loanId] = msg.sender;
 
         loanIdsOfPendingRequests.push(_loanId);
-        loanIdToPendingRequestIndex[_loanId] = loanIdsOfPendingRequests.length;
+        loanIdToPendingRequestIndex[_loanId] = loanIdsOfPendingRequests.length.sub(1);
          
         emit RequestLoan(_loanId, msg.sender, _amount, _tariffId);
     }
@@ -470,11 +491,10 @@ contract Bank is Ownable {
         else{
             uint256 _repayAmount = userInfo[msg.sender].loanInfo[_loanIndex].repayAmountBal;
             
-            require(_amount > _repayAmount , "Excess Payment");
+            require(_amount <= _repayAmount , "Excess Payment");
             userInfo[msg.sender].loanInfo[_loanIndex].repayAmountBal = userInfo[msg.sender].loanInfo[_loanIndex].repayAmountBal.sub(_amount); 
-            contractBalance = contractBalance.add(_repayAmount);
+            contractBalance = contractBalance.add(_amount);
             
-            emit RepayLoan(userInfo[msg.sender].loanInfo[_loanIndex].loanId, msg.sender, _amount);
             
             if( userInfo[msg.sender].loanInfo[_loanIndex].repayAmountBal == 0 ) {
                 emit LoanClosed(userInfo[msg.sender].loanInfo[_loanIndex].loanId, msg.sender);  
@@ -490,33 +510,30 @@ contract Bank is Ownable {
                 userInfo[msg.sender].loanInfo[_loanIndex] =  userInfo[msg.sender].loanInfo[_lnCount.sub(1)];
                 userInfo[msg.sender].loanInfo.pop();
             }
+
+            emit RepayLoan(userInfo[msg.sender].loanInfo[_loanIndex].loanId, msg.sender, _amount);
         }
     }
     
     /** 
      * @notice Cancel Loan Request.
      * @dev User cancels requested loan.
-     * @param _loanId id of the loan.
+     * @param _cancelLoanId id of the loan to be cancelled.
      */
-    function cancelLoanRequest(uint256 _loanId) external {
+    function cancelLoanRequest(uint256 _cancelLoanId) external {
         
-        uint256 _loanIndex = loanIdToUserLoanInfoIndex[_loanId];
-        
-        require(userInfo[msg.sender].loanInfo[_loanIndex].loanStatus == LnStatus.WaitingForCollateralVerification, "Invalid Loan Id");
+        require(userInfo[msg.sender].loanInfo[ loanIdToUserLoanInfoIndex[_cancelLoanId]].loanStatus == LnStatus.WaitingForCollateralVerification, "Unable to cancel");
 
-        uint256 _lastLoanIdOfPendingRequestsIndex = loanIdsOfPendingRequests.length.sub(1);
-        uint256 _lastLoanIdOfPendingRequests = loanIdsOfPendingRequests[_lastLoanIdOfPendingRequestsIndex];
+        loanIdToPendingRequestIndex[loanIdsOfPendingRequests[loanIdsOfPendingRequests.length.sub(1)]] = loanIdToPendingRequestIndex[_cancelLoanId]; // Updating loanIdToPendingRequestIndex of last element with the index of cancelled loan id's index.
         
-        loanIdToPendingRequestIndex[_lastLoanIdOfPendingRequests] = loanIdToPendingRequestIndex[_loanId];
-        loanIdsOfPendingRequests[loanIdToPendingRequestIndex[_loanId]] = loanIdsOfPendingRequests.length.sub(1);
+        loanIdsOfPendingRequests[loanIdToPendingRequestIndex[_cancelLoanId]] = loanIdsOfPendingRequests[loanIdsOfPendingRequests.length.sub(1)]; // Replacing the cancelled loan request id in the  loanIdsOfPendingRequests array with last element of the array.
         loanIdsOfPendingRequests.pop();
-        loanIdsOfPendingRequests[loanIdToPendingRequestIndex[_loanId]];
-        
+
         uint256 _lnCount = userInfo[msg.sender].loanInfo.length;
-        userInfo[msg.sender].loanInfo[_loanIndex] =  userInfo[msg.sender].loanInfo[_lnCount.sub(1)];
+        userInfo[msg.sender].loanInfo[loanIdToUserLoanInfoIndex[_cancelLoanId]] =  userInfo[msg.sender].loanInfo[_lnCount.sub(1)];
         userInfo[msg.sender].loanInfo.pop();
         
-        emit CancelLoanRequest(userInfo[msg.sender].loanInfo[_loanIndex].loanId, msg.sender);
+        emit CancelLoanRequest(_canceloanId, msg.sender);
     }
     
     /**
@@ -528,7 +545,7 @@ contract Bank is Ownable {
      */
     function viewLoanRequests(uint256 _cursor, uint256 _count) external onlyByManager view returns(uint[] memory, address[] memory, uint256[] memory, uint256[] memory, uint256[] memory) {
        
-        uint256 memory _size = ( _cursor + _count ) < loanIdsOfPendingRequests.length ? _count : loanIdsOfPendingRequests.length;
+        uint256 memory _size = ( _cursor + _count ) < loanIdsOfPendingRequests.length && _count != 0 ? _count : loanIdsOfPendingRequests.length;
 
         address[] memory _userAddrs = new address[]( _size);
         uint256[] memory _loanIds = new uint256[]( _size);
@@ -562,14 +579,17 @@ contract Bank is Ownable {
      * @param _approve `true` value indicates the approval and `false` indicates rejection.
      */
     function approveOrRejectLoan(uint _loanId, bool _approve) external onlyByManager {
-        
+
         address _userAddrs = loanIdToUser[_loanId];
         uint256 _userLoanIndex = loanIdToUserLoanInfoIndex[_loanId];
+        uint256 _loanAmount = userInfo[_userAddrs].loanInfo[_userLoanIndex].amount;
         
         if(_approve){
+            require( contractBalance - _loanAmount  > reserveBalance, "Insufficient Balance");
+            userInfo[_userAddrs].loanInfo[_userLoanIndex].endTime = now.add(userInfo[_userAddrs].loanInfo[_userLoanIndex].duration.mul(1 days))
             userInfo[_userAddrs].loanInfo[_userLoanIndex].loanStatus = LnStatus.Approved;
-            payable(_userAddrs).transfer(userInfo[_userAddrs].loanInfo[_userLoanIndex].amount);
-            contractBalance = contractBalance.sub(userInfo[_userAddrs].loanInfo[_userLoanIndex].amount);
+            payable(_userAddrs).transfer(_loanAmount);
+            contractBalance = contractBalance.sub(_loanAmount);
         }
         else{
             userInfo[_userAddrs].loanInfo[_userLoanIndex].loanStatus = LnStatus.Rejected;
@@ -601,7 +621,7 @@ contract Bank is Ownable {
      * @notice Prevent new deposits.
      * @dev Prevent new deposits.
      */
-    function pauseNewDeposits() external onlyOwner {
+    function pauseNewDeposits() external onlyByManager {
         
         acceptDeposit = false;
         emit PausedNewDeposits();
@@ -611,7 +631,7 @@ contract Bank is Ownable {
      * @notice Allow new deposits.
      * @dev Allow new deposits.
      */
-    function resumeNewDeposits() external onlyOwner {
+    function resumeNewDeposits() external onlyByManager {
         
         acceptDeposit = true;
         emit ResumedNewDeposits();
@@ -621,7 +641,7 @@ contract Bank is Ownable {
      * @notice Prevent new loans.
      * @dev Prevent new loans.
      */
-    function pauseNewLoans() external onlyOwner {
+    function pauseNewLoans() external onlyByManager {
         
         loanAvailable = false;
         emit PausedNewDeposits();
@@ -632,7 +652,7 @@ contract Bank is Ownable {
      * @notice Allow new loans.
      * @dev Allow new loans.
      */
-    function resumeNewLoans() external onlyOwner {
+    function resumeNewLoans() external onlyByManager {
         
         loanAvailable = true;
         emit ResumedNewLoans();
@@ -655,6 +675,8 @@ contract Bank is Ownable {
      */
     function ownerWithdraw(uint256 _amount) external onlyOwner {
         
+        require( _amount <= ownerBalance, "Insufficient owner balance");
+        require( contractBalance - _amount > reserveBalance, "Insufficient Balance");
         contractBalance = contractBalance.sub(_amount);
         ownerBalance = ownerBalance.sub(_amount);
         msg.sender.transfer(_amount);
@@ -665,13 +687,14 @@ contract Bank is Ownable {
     /**
      * @notice Get the fixed deposit details of an user.
      * @dev Get the fixed deposit details of an user.
-     * @param _userAddrs User address.
      * @param _cursor Starting value of the index that is to be fetched from user's fdInfo array.
      * @param _count Number of fd status that is to be fetched from user's fdInfo array. In order to fetch entire array, set count to zero or a number higher than the last index of the array. 
      */
-    function getUserFdDetails(address _userAddrs, uint256 _cursor, uint256 _count ) public view returns(uint[] memory, uint256[] memory, uint256[] memory, uint256[] memory, uint256[] memory, uint256[] memory) {
+    function getUserFdDetails( uint256 _cursor, uint256 _count ) public view returns(uint[] memory, uint256[] memory, uint256[] memory, uint256[] memory, uint256[] memory, uint256[] memory) {
        
-        uint256 memory _size = ( _cursor + _count ) < userInfo[_userAddrs].fdInfo.length ? _count : userInfo[_userAddrs].fdInfo.length;
+        require(userInfo[msg.sender].acc_status, "Invalid Access");
+        address _userAddrs = msg.sender;
+        uint256 memory _size = ( _cursor + _count ) < userInfo[_userAddrs].fdInfo.length && _count != 0 ? _count : userInfo[_userAddrs].fdInfo.length;
 
         uint256[] memory _fdIndexes = new uint256[](_size);
         uint256[] memory _fdIds = new uint256[](_size);
@@ -695,9 +718,10 @@ contract Bank is Ownable {
     /**
      * @notice Get the deposit details of an user.
      * @dev Get the deposit details of an user.
-     * @param _userAddrs User address.
      */
-    function getUserDepositDetails(address _userAddrs) public view returns(uint256 _balance, uint256 _totalFdAmount) {
+    function getUserDepositDetails() public view returns(uint256 _balance, uint256 _totalFdAmount) {
+        require(userInfo[msg.sender].acc_status, "Invalid Access");
+        address _userAddrs = msg.sender;
         _balance = userInfo[_userAddrs].balance;
         _totalFdAmount = userInfo[_userAddrs].totalUsrFD;
     }
@@ -705,7 +729,6 @@ contract Bank is Ownable {
     /**
      * @notice Get the loan details of an user.
      * @dev Get the loan details of an user.
-     * @param _userAddrs User address.
      * @param _cursor Starting value of the index that is to be fetched from user's loanInfo array.
      * @param _count Number of loan status that is to be fetched from user's loanInfo array. In order to fetch entire array, set count to zero or a number higher than the last index of the array. 
      */
@@ -713,6 +736,9 @@ contract Bank is Ownable {
         returns(uint256[] memory _loanIndexes, uint256[] memory _loanIds, uint256[] memory _amounts,
         uint256[] memory _durations, uint256[] memory _interests, uint256[] memory _endTimes, uint256[] memory _loanStatus) {
             
+        require(userInfo[msg.sender].acc_status, "Invalid Access");
+        address _userAddrs = msg.sender;
+
         for (uint256 i = _cursor; i < userInfo[_userAddrs].loanInfo.length && (i < _cursor + _count || _count == 0 ); i++) {
             _loanIndexes[i] = i;
             _loanIds[i] = userInfo[_userAddrs].loanInfo[i].loanId;
@@ -824,8 +850,20 @@ contract Bank is Ownable {
 
         emit RemoveFDDurationAndInterest(_tariffId);
     }
+
+    /**
+     * @notice Owner can increase the reserve balance that is to be maintained in the contract. 
+     * @dev Owner increase the reserveBalance.
+     * @param _amount Amount that is to be increased.
+     */
+    function increaseReserveBalance(uint256 _amount) external onlyOwner {
+        
+        reserveBalance = reserveBalance.add(_amount);
+
+        emit IncreaseReserveBalance(reserveBalance);
+    }
     
-     /**
+    /**
      * @notice Owner can change the manager. 
      * @dev Owner changes the manager.
      * @param _managerAddrs Manager's address.
@@ -834,9 +872,10 @@ contract Bank is Ownable {
         
         managerAddress = _managerAddrs; 
         
+        emit SetManager(_managerAddress);
     }
     
-         /**
+    /**
      * @notice Manager can get addresses of all Users. 
      * @dev Manager can get addresses of all Users
      * @return _userAddrs Addresses of all Users.
