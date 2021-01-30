@@ -732,7 +732,7 @@ contract Bank is Ownable {
      * @param _cursor Starting value of the index that is to be fetched from user's loanInfo array.
      * @param _count Number of loan status that is to be fetched from user's loanInfo array. In order to fetch entire array, set count to zero or a number higher than the last index of the array. 
      */
-    function getUserLoanDetails(address _userAddrs, uint256 _count, uint256 _cursor) public view 
+    function getUserLoanDetails(address _userAddrs, uint256 _cursor, uint256 _count) public view 
         returns(uint256[] memory _loanIndexes, uint256[] memory _loanIds, uint256[] memory _amounts,
         uint256[] memory _durations, uint256[] memory _interests, uint256[] memory _endTimes, uint256[] memory _loanStatus) {
             
@@ -784,7 +784,7 @@ contract Bank is Ownable {
      * @return _duration Loan duration.
      * @return _interest Loan interest.
      */
-    function getLoanDurationAndInterest(uint256 _count, uint256 _cursor) external view returns(uint256[] memory _duration, uint256[] memory  _interest) {
+    function getLoanDurationAndInterest(uint256 _cursor, uint256 _count) external view returns(uint256[] memory _duration, uint256[] memory  _interest) {
         for (uint256 i = _cursor; i < lnTfId.length && (i < _cursor + _count || _count == 0 ); i++) {
             _duration[i] = lnTariffIdToInfo[lnTfId[i]].duration;
             _interest[i] = lnTariffIdToInfo[lnTfId[i]].interest;
@@ -829,7 +829,7 @@ contract Bank is Ownable {
      * @return _duration Fixed deposit duration.
      * @return _interest Interest rate for fixed deposit.
      */
-    function getFDDurationAndInterest(uint256 _count, uint256 _cursor) external view returns (uint256[] memory _duration, uint256[] memory _interest) {
+    function getFDDurationAndInterest(uint256 _cursor, uint256 _count) external view returns (uint256[] memory _duration, uint256[] memory _interest) {
 
         for (uint256 i = _cursor; i < fdTfId.length && (i < _cursor + _count || _count == 0 ); i++) {
             _duration[i] = fdTariffIdToInfo[fdTfId[i]].duration;
