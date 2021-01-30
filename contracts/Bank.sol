@@ -745,7 +745,7 @@ contract Bank is Ownable {
         uint256 _tariffId = uint256(keccak256(abi.encodePacked(now, _duration)));
         lnTfId.push(_tariffId);
         lnTariffIdToInfo[_tariffId] = LoanTariff(_duration, _interest);
-        lnTariffIdToLnTfIdIndex[_tariffId] = lnTfId.length;
+        lnTariffIdToLnTfIdIndex[_tariffId] = lnTfId.length.sub(1);
         
         emit SetLoanDurationAndInterest(_tariffId, _duration, _interest);
     }
@@ -790,7 +790,7 @@ contract Bank is Ownable {
         uint256 _tariffId = uint256(keccak256(abi.encodePacked(now, _duration)));
         fdTfId.push(_tariffId);
         fdTariffIdToInfo[_tariffId] = FdTariff(_duration, _interest);
-        fdTariffIdToFdTfIdIndex[_tariffId] = fdTfId.length;
+        fdTariffIdToFdTfIdIndex[_tariffId] = fdTfId.length.sub(1);;
 
         emit SetFDDurationAndInterest(_tariffId, _duration, _interest);
     }
