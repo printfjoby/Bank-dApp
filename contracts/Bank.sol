@@ -25,6 +25,7 @@ contract Bank is Ownable {
                 
         WaitingForCollateralVerification, // Waiting for collateral verification by the Manager.
         Approved, // Loan approved by Manager after collateral verification.
+        Rejected, // Loan rejected by Manager.
         CrossedDeadline // Failed to repay the loan.
     }
             
@@ -119,7 +120,7 @@ contract Bank is Ownable {
      * @param amount Amount withdrawn.
      */
     event WithdrawFDBeforeMaturity(uint256 indexed fdId, address userAddr, uint256 amount);  
-        
+         
     /**
      * @dev Emitted when User requests for a loan.
      * @param loanId Loan id.
@@ -153,8 +154,8 @@ contract Bank is Ownable {
     
     /**
      * @dev Emitted when Loan is closed.
-     * @param userAddr User address.
      * @param loanId Loan Id.
+     * @param userAddr User address.
      */
     event LoanClosed(uint256 indexed loanId, address userAddr); 
         
@@ -199,7 +200,7 @@ contract Bank is Ownable {
     event OwnerWithdraw(uint256 amount);  
         
     /**
-     * @dev Emitted when Owner sets a loan duration and its interest rate.
+     * @dev Emitted when Manager sets a loan duration and its interest rate.
      * @param tariffId Loan tarrif Id.
      * @param duration Loan duration.
      * @param interest Loan interest.
@@ -208,13 +209,13 @@ contract Bank is Ownable {
     event SetLoanDurationAndInterest(uint256 tariffId, uint256 duration, uint256 interest);  
 
     /**
-     * @dev Emitted when Owner remove a loan duration and its interest rate.
+     * @dev Emitted when Manager remove a loan duration and its interest rate.
      * @param tariffId Loan tariff Id.
      */
     event RemoveLoanDurationAndInterest(uint256 tariffId);
         
     /**
-     * @dev Emitted when Owner sets a Fixed deposit duration and its interest rate.
+     * @dev Emitted when Manager sets a Fixed deposit duration and its interest rate.
      * @param tariffId Fixed deposit tarrif Id.
      * @param duration of Fixed deposit.
      * @param interest Fixed deposit interest.
@@ -222,7 +223,7 @@ contract Bank is Ownable {
     event SetFDDurationAndInterest(uint256 tariffId, uint256 duration, uint256 interest); 
     
      /**
-     * @dev Emitted when Owner remove a fixed deposit duration and its interest rate.
+     * @dev Emitted when Manager remove a fixed deposit duration and its interest rate.
      * @param tariffId Fixed deposit tariff Id.
      */
     event RemoveFDDurationAndInterest(uint256 tariffId);  
@@ -236,24 +237,29 @@ contract Bank is Ownable {
     
      /* Storage */
     
-    address[] private userAddress; // Array of User addresses.
+    address[] userAddress; // Array of User addresses.
     address public managerAddress; // Managers's Address.
     
     uint256 public contractBalance; // Balance amount of the contract.
     uint256 private ownerBalance; // Owner Balance.
     uint256 constant public loanInterestAmountShare = 10 ; // Loan interest amount share for owner in percent.
     uint256 public totalFixedDeposit; // Total fixed deposit.
-    uint256[] public loanIdsOfPendingRequests; // Loan ids of pending Loan requests.
+    uint256[] private loanIdsOfPendingRequests; // Loan ids of pending Loan requests.
     uint256[] public fdTfId; // Fixed Deposit tariff Ids.
     uint256[] public lnTfId; // Loan tariff Ids.
     
     bool public acceptDeposit; // User can deposit Eth only if `acceptDeposit` is `true`;
-    bool public loanAvailable; // User can request Loan only if `loanAvailable` is `truw`;
+    bool public loanAvailable; // User can request Loan only if `loanAvailable` is `true`;
     
-    mapping(address => UsrInfo) public userInfo; // Information of User.
-    mapping(uint256 => address) public loanIdToUser; // Mapping from loan ids of pending Loan requests to user.
+    mapping(address => UsrInfo) userInfo; // Information of User.
+    mapping(uint256 => address) loanIdToUser; // Mapping from loan ids of pending Loan requests to user address .
+    mapping(uint256 => uint256) loanIdToPendingRequestIndex; //Mapping from Loan Id to loanIdsOfPendingRequest array index.
+    mapping(uint256 => uint256) loanIdToUserLoanInfoIndex; //Mapping from Loan Id to user's loanInfo array index.
     mapping(uint256 => FdTariff) public fdTariffIdToInfo; // Mapping from Fixed deposit tariff Id to information(Fd duration and interest).
     mapping(uint256 => LoanTariff) public lnTariffIdToInfo; // Mapping from Loan tariff Id to information(Loan duration and interest).
+    mapping(uint256 => uint256) public fdTariffIdToFdTfIdIndex; // Mapping from Fixed deposit tariff Id to fdTfId index.
+    mapping(uint256 => uint256) public lnTariffIdToLnTfIdIndex; // Mapping from Loan tariff Id to lnTfId index.
+
     
     /* Modifiers */
     
@@ -425,7 +431,7 @@ contract Bank is Ownable {
             userAddress.push(msg.sender);
         }
         
-         uint256 _loanId = uint256(keccak256(abi.encodePacked(now, msg.sender)));
+        uint256 _loanId = uint256(keccak256(abi.encodePacked(now, msg.sender)));
         userInfo[msg.sender].loanInfo.push(
             LnInfo(
                 _loanId,
@@ -436,8 +442,11 @@ contract Bank is Ownable {
                 0,
                 LnStatus.WaitingForCollateralVerification
             ));
-        loanIdsOfPendingRequests.push(_loanId);
+        loanIdToUserLoanInfoIndex[_loanId] = userInfo[msg.sender].loanInfo.length;
         loanIdToUser[_loanId] = msg.sender;
+
+        loanIdsOfPendingRequests.push(_loanId);
+        loanIdToPendingRequestIndex[_loanId] = loanIdsOfPendingRequests.length;
          
         emit RequestLoan(_loanId, msg.sender, _amount, _tariffId);
     }
@@ -485,56 +494,63 @@ contract Bank is Ownable {
     }
     
     /** 
-     * @notice Request for a loan.
-     * @dev User requests for a loan.
-     * @param _loanIndex `loanInfo` index id of the loan.
+     * @notice Cancel Loan Request.
+     * @dev User cancels requested loan.
+     * @param _loanId id of the loan.
      */
-    function cancelLoanRequest(uint256 _loanIndex) external {
+    function cancelLoanRequest(uint256 _loanId) external {
+        
+        uint256 _loanIndex = loanIdToUserLoanInfoIndex[_loanId];
         
         require(userInfo[msg.sender].loanInfo[_loanIndex].loanStatus == LnStatus.WaitingForCollateralVerification, "Invalid Loan Id");
 
-        for(uint256 i=0; i < loanIdsOfPendingRequests.length;i++){
-            if(loanIdsOfPendingRequests[i] == userInfo[msg.sender].loanInfo[_loanIndex].loanId){
-                loanIdsOfPendingRequests[i] = loanIdsOfPendingRequests.length.sub(1);
-                loanIdsOfPendingRequests.pop();
-            }
-        }
+        uint256 _lastLoanIdOfPendingRequestsIndex = loanIdsOfPendingRequests.length.sub(1);
+        uint256 _lastLoanIdOfPendingRequests = loanIdsOfPendingRequests[_lastLoanIdOfPendingRequestsIndex];
         
-        emit CancelLoanRequest(userInfo[msg.sender].loanInfo[_loanIndex].loanId, msg.sender);
+        loanIdToPendingRequestIndex[_lastLoanIdOfPendingRequests] = loanIdToPendingRequestIndex[_loanId];
+        loanIdsOfPendingRequests[loanIdToPendingRequestIndex[_loanId]] = loanIdsOfPendingRequests.length.sub(1);
+        loanIdsOfPendingRequests.pop();
+        loanIdsOfPendingRequests[loanIdToPendingRequestIndex[_loanId]];
         
         uint256 _lnCount = userInfo[msg.sender].loanInfo.length;
         userInfo[msg.sender].loanInfo[_loanIndex] =  userInfo[msg.sender].loanInfo[_lnCount.sub(1)];
         userInfo[msg.sender].loanInfo.pop();
+        
+        emit CancelLoanRequest(userInfo[msg.sender].loanInfo[_loanIndex].loanId, msg.sender);
     }
     
     /**
      * @notice View loan requests.
      * @dev Manager can view all loan requests waiting for approval.
+     * @param _cursor Starting value of the index that is to be fetched from loanIdsOfPendingRequests array.
+     * @param _count Number of loan requests that is to be fetched from the array. In order to fetch entire array, set count to zero or a number higher than the last index of the array. 
      * @return _loans Loans waiting for approval.
      */
-    function viewLoanRequests() external onlyByManager view returns(uint[] memory, address[] memory, uint256[] memory, uint256[] memory, uint256[] memory) {
+    function viewLoanRequests(uint256 _cursor, uint256 _count) external onlyByManager view returns(uint[] memory, address[] memory, uint256[] memory, uint256[] memory, uint256[] memory) {
        
-        address[] memory _userAddrs = new address[](loanIdsOfPendingRequests.length);
-        uint256[] memory _loanIds = new uint256[](loanIdsOfPendingRequests.length);
-        uint256[] memory _amounts = new uint256[](loanIdsOfPendingRequests.length);
-        uint256[] memory _durations = new uint256[](loanIdsOfPendingRequests.length);
-        uint256[] memory _interests = new uint256[](loanIdsOfPendingRequests.length);
+        uint256 memory _size = ( _cursor + _count ) < loanIdsOfPendingRequests.length ? _count : loanIdsOfPendingRequests.length;
+
+        address[] memory _userAddrs = new address[]( _size);
+        uint256[] memory _loanIds = new uint256[]( _size);
+        uint256[] memory _amounts = new uint256[]( _size);
+        uint256[] memory _durations = new uint256[]( _size);
+        uint256[] memory _interests = new uint256[]( _size);
             
         uint256 _lnId;
+        uint256 _userLoanIndex;
         address _usrAdrs;
-            
-        for(uint256 i=0; i < loanIdsOfPendingRequests.length; i++ ){
+        
+        for (uint256 i = _cursor; i < loanIdsOfPendingRequests.length && (i < _cursor + _count || _count == 0 ); i++) {
             _lnId = loanIdsOfPendingRequests[i];
             _usrAdrs = loanIdToUser[_lnId];
+            _userLoanIndex = loanIdToUserLoanInfoIndex[_lnId];
+            
             _loanIds[i] = _lnId;
             _userAddrs[i] = _usrAdrs;
-            for(uint256 j= 0; j < userInfo[_usrAdrs].loanInfo.length; j++ ){
-                if(userInfo[_usrAdrs].loanInfo[j].loanId == _lnId){
-                    _amounts[i] = userInfo[_usrAdrs].loanInfo[j].amount;
-                    _durations[i] = userInfo[_usrAdrs].loanInfo[j].duration;
-                    _interests[i] = userInfo[_usrAdrs].loanInfo[j].interest;
-                }
-            }
+            _amounts[i] = userInfo[_usrAdrs].loanInfo[_userLoanIndex].amount;
+            _durations[i] = userInfo[_usrAdrs].loanInfo[_userLoanIndex].duration;
+            _interests[i] = userInfo[_usrAdrs].loanInfo[_userLoanIndex].interest;
+                
         }
         return(_loanIds, _userAddrs, _amounts, _durations, _interests);
     }
@@ -544,31 +560,24 @@ contract Bank is Ownable {
      * @dev Manager approve or reject loan.
      * @param _loanId Loan Id.
      * @param _approve `true` value indicates the approval and `false` indicates rejection.
-     * 
      */
     function approveOrRejectLoan(uint _loanId, bool _approve) external onlyByManager {
         
         address _userAddrs = loanIdToUser[_loanId];
-        for(uint256 i = 0; i < userInfo[_userAddrs].loanInfo.length ; i++) {
-            if(userInfo[_userAddrs].loanInfo[i].loanId == _loanId){
-                if(_approve){
-                    userInfo[_userAddrs].loanInfo[i].loanStatus = LnStatus.Approved;
-                    payable(_userAddrs).transfer(userInfo[_userAddrs].loanInfo[i].amount);
-                    contractBalance = contractBalance.sub(userInfo[_userAddrs].loanInfo[i].amount);
-                }
-                else{
-                    userInfo[_userAddrs].loanInfo[i] = 
-                        userInfo[_userAddrs].loanInfo[userInfo[_userAddrs].loanInfo.length.sub(1)]; // Copy last element to current element's position.
-                    userInfo[loanIdToUser[_loanId]].loanInfo.pop(); // Remove last element
-                }
-                for(uint256 j = 0; j < loanIdsOfPendingRequests.length; j++){
-                    if(loanIdsOfPendingRequests[i] == _loanId){
-                        loanIdsOfPendingRequests[i] = loanIdsOfPendingRequests[loanIdsOfPendingRequests.length.sub(1)]; // Copy last element to current element's position.
-                        loanIdsOfPendingRequests.pop(); // Remove last element
-                    }
-                }
-            }
+        uint256 _userLoanIndex = loanIdToUserLoanInfoIndex[_loanId];
+        
+        if(_approve){
+            userInfo[_userAddrs].loanInfo[_userLoanIndex].loanStatus = LnStatus.Approved;
+            payable(_userAddrs).transfer(userInfo[_userAddrs].loanInfo[_userLoanIndex].amount);
+            contractBalance = contractBalance.sub(userInfo[_userAddrs].loanInfo[_userLoanIndex].amount);
         }
+        else{
+            userInfo[_userAddrs].loanInfo[_userLoanIndex].loanStatus = LnStatus.Rejected;
+        }
+
+        loanIdsOfPendingRequests[loanIdToPendingRequestIndex[_loanId]] = loanIdsOfPendingRequests[loanIdsOfPendingRequests.length.sub(1)]; // Copy last element to current element's position.
+        loanIdsOfPendingRequests.pop(); // Remove last element
+
         emit ApproveOrRejectLoan(_loanId,_userAddrs, _approve);
     }
     
@@ -580,12 +589,11 @@ contract Bank is Ownable {
     function deadLineCrossed(uint256 _loanId) external onlyByManager {
         
         address _userAddrs = loanIdToUser[_loanId];
-        for(uint256 i=0; i< userInfo[_userAddrs].loanInfo.length; i++) {
-            if(userInfo[_userAddrs].loanInfo[i].loanId == _loanId ){
-                require(userInfo[_userAddrs].loanInfo[i].endTime <= now, "Not reached the End time" );
-                userInfo[_userAddrs].loanInfo[i].loanStatus = LnStatus.CrossedDeadline;
-            }
-        }
+
+        require(userInfo[_userAddrs].loanInfo[loanIdToUserLoanInfoIndex[_loanId]].endTime <= now, "Not reached the Deadline" );
+        
+        userInfo[_userAddrs].loanInfo[loanIdToUserLoanInfoIndex[_loanId]].loanStatus = LnStatus.CrossedDeadline;
+        
         emit LoanDeadLineCrosssed(_loanId, _userAddrs);
     }
     
@@ -658,17 +666,21 @@ contract Bank is Ownable {
      * @notice Get the fixed deposit details of an user.
      * @dev Get the fixed deposit details of an user.
      * @param _userAddrs User address.
+     * @param _cursor Starting value of the index that is to be fetched from user's fdInfo array.
+     * @param _count Number of fd status that is to be fetched from user's fdInfo array. In order to fetch entire array, set count to zero or a number higher than the last index of the array. 
      */
-    function getUserFdDetails(address _userAddrs) public view returns(uint[] memory, uint256[] memory, uint256[] memory, uint256[] memory, uint256[] memory, uint256[] memory) {
+    function getUserFdDetails(address _userAddrs, uint256 _cursor, uint256 _count ) public view returns(uint[] memory, uint256[] memory, uint256[] memory, uint256[] memory, uint256[] memory, uint256[] memory) {
        
-        uint256[] memory _fdIndexes = new uint256[](userInfo[_userAddrs].fdInfo.length);
-        uint256[] memory _fdIds = new uint256[](userInfo[_userAddrs].fdInfo.length);
-        uint256[] memory _amounts = new uint256[](userInfo[_userAddrs].fdInfo.length);
-        uint256[] memory _durations = new uint256[](userInfo[_userAddrs].fdInfo.length);
-        uint256[] memory _interests = new uint256[](userInfo[_userAddrs].fdInfo.length);
-        uint256[] memory _endTimes = new uint256[](userInfo[_userAddrs].fdInfo.length);
+        uint256 memory _size = ( _cursor + _count ) < userInfo[_userAddrs].fdInfo.length ? _count : userInfo[_userAddrs].fdInfo.length;
+
+        uint256[] memory _fdIndexes = new uint256[](_size);
+        uint256[] memory _fdIds = new uint256[](_size);
+        uint256[] memory _amounts = new uint256[](_size);
+        uint256[] memory _durations = new uint256[](_size);
+        uint256[] memory _interests = new uint256[](_size);
+        uint256[] memory _endTimes = new uint256[](_size);
             
-        for(uint256 i=0 ; i < userInfo[_userAddrs].fdInfo.length; i++ ){
+        for (uint256 i = _cursor; i < userInfo[_userAddrs].fdInfo.length && (i < _cursor + _count || _count == 0 ); i++) {
             
             _fdIndexes[i] = i;
             _fdIds[i] = userInfo[_userAddrs].fdInfo[i].fdId;
@@ -694,40 +706,33 @@ contract Bank is Ownable {
      * @notice Get the loan details of an user.
      * @dev Get the loan details of an user.
      * @param _userAddrs User address.
+     * @param _cursor Starting value of the index that is to be fetched from user's loanInfo array.
+     * @param _count Number of loan status that is to be fetched from user's loanInfo array. In order to fetch entire array, set count to zero or a number higher than the last index of the array. 
      */
-    function getUserLoanDetails(address _userAddrs) public view 
+    function getUserLoanDetails(address _userAddrs, uint256 _count, uint256 _cursor) public view 
         returns(uint256[] memory _loanIndexes, uint256[] memory _loanIds, uint256[] memory _amounts,
         uint256[] memory _durations, uint256[] memory _interests, uint256[] memory _endTimes, uint256[] memory _loanStatus) {
             
-        for(uint256 i=0 ; i < userInfo[_userAddrs].loanInfo.length; i++ ){
+        for (uint256 i = _cursor; i < userInfo[_userAddrs].loanInfo.length && (i < _cursor + _count || _count == 0 ); i++) {
             _loanIndexes[i] = i;
             _loanIds[i] = userInfo[_userAddrs].loanInfo[i].loanId;
             _amounts[i] = userInfo[_userAddrs].loanInfo[i].amount;
             _durations[i] = userInfo[_userAddrs].loanInfo[i].duration;
             _interests[i] = userInfo[_userAddrs].loanInfo[i].interest;
             _endTimes[i] = userInfo[_userAddrs].loanInfo[i].endTime;
-        }
-        _loanStatus = getUserLoanStatus(_userAddrs);
-    }
-    
-    /**
-     * @notice Get the loan status of an user.
-     * @dev Get the loan status of an user.
-     * @param _userAddrs User address.
-     */
-    function getUserLoanStatus(address _userAddrs) private view returns(uint256[] memory _loanStatus){
-        
-        for(uint256 i=0 ; i < userInfo[_userAddrs].loanInfo.length; i++ ){
 
-           if(userInfo[_userAddrs].loanInfo[i].loanStatus == LnStatus.WaitingForCollateralVerification) {
+            if(userInfo[_userAddrs].loanInfo[i].loanStatus == LnStatus.WaitingForCollateralVerification) {
                 _loanStatus[i] = 1;
             }else if(userInfo[_userAddrs].loanInfo[i].loanStatus == LnStatus.Approved) {
                 _loanStatus[i] = 2;
-            }else if(userInfo[_userAddrs].loanInfo[i].loanStatus == LnStatus.CrossedDeadline) {
+            }else if(userInfo[_userAddrs].loanInfo[i].loanStatus == LnStatus.Rejected) {
                 _loanStatus[i] = 3;
+            }else if(userInfo[_userAddrs].loanInfo[i].loanStatus == LnStatus.CrossedDeadline) {
+                _loanStatus[i] = 4;
             }
         }
     }
+    
     
     /**
      * @notice Set a loan duration and its interest rate.
@@ -740,6 +745,7 @@ contract Bank is Ownable {
         uint256 _tariffId = uint256(keccak256(abi.encodePacked(now, _duration)));
         lnTfId.push(_tariffId);
         lnTariffIdToInfo[_tariffId] = LoanTariff(_duration, _interest);
+        lnTariffIdToLnTfIdIndex[_tariffId] = lnTfId.length;
         
         emit SetLoanDurationAndInterest(_tariffId, _duration, _interest);
     }
@@ -747,11 +753,13 @@ contract Bank is Ownable {
     /**
      * @notice Get all loan durations and their interest rates
      * @dev Get all loan durations and their interest rates.
+     * @param _cursor Starting value of the index that is to be fetched from lnTariffToInfo array.
+     * @param _count Number of tariff that is to be fetched from  lnTariffToInfo array. In order to fetch entire array, set count to zero or a number higher than the last index of the array. 
      * @return _duration Loan duration.
      * @return _interest Loan interest.
      */
-    function getLoanDurationAndInterest() external view returns(uint256[] memory _duration, uint256[] memory  _interest) {
-        for(uint256 i = 0; i < lnTfId.length; i++){
+    function getLoanDurationAndInterest(uint256 _count, uint256 _cursor) external view returns(uint256[] memory _duration, uint256[] memory  _interest) {
+        for (uint256 i = _cursor; i < lnTfId.length && (i < _cursor + _count || _count == 0 ); i++) {
             _duration[i] = lnTariffIdToInfo[lnTfId[i]].duration;
             _interest[i] = lnTariffIdToInfo[lnTfId[i]].interest;
         }
@@ -763,12 +771,10 @@ contract Bank is Ownable {
      * @param _tariffId Loan tariff Id..
      */
     function removeLoanDurationAndInterest(uint256 _tariffId) external onlyByManager {
-        for(uint256 i = 0; i < lnTfId.length; i++){
-            if(lnTfId[i] == _tariffId){
-                lnTfId[i] = lnTfId[lnTfId.length.sub(1)];
-                lnTfId.pop();
-            }
-        }
+
+        lnTfId[fdTariffIdToFdTfIdIndex[_tariffId]] = lnTfId[lnTfId.length.sub(1)];
+        lnTfId.pop();
+
         emit RemoveLoanDurationAndInterest(_tariffId);
     }
     
@@ -780,20 +786,26 @@ contract Bank is Ownable {
      * @param _interest Interest rate for fixed deposit.
      */
     function setFDDurationAndInterest(uint256 _duration, uint256 _interest) external onlyByManager{
+        
         uint256 _tariffId = uint256(keccak256(abi.encodePacked(now, _duration)));
         fdTfId.push(_tariffId);
         fdTariffIdToInfo[_tariffId] = FdTariff(_duration, _interest);
+        fdTariffIdToFdTfIdIndex[_tariffId] = fdTfId.length;
+
         emit SetFDDurationAndInterest(_tariffId, _duration, _interest);
     }
     
     /**
      * @notice Get all fixed deposit durations and their interest rates. 
      * @dev Get all fixed deposit durations and their interest rates. 
+     * @param _cursor Starting value of the index that is to be fetched from fdTariffToInfo array.
+     * @param _count Number of tariff that is to be fetched from  fdTariffToInfo array. In order to fetch entire array, set count to zero or a number higher than the last index of the array. 
      * @return _duration Fixed deposit duration.
      * @return _interest Interest rate for fixed deposit.
      */
-    function getFDDurationAndInterest() external view returns (uint256[] memory _duration, uint256[] memory _interest) {
-        for(uint256 i = 0; i < fdTfId.length; i++){
+    function getFDDurationAndInterest(uint256 _count, uint256 _cursor) external view returns (uint256[] memory _duration, uint256[] memory _interest) {
+
+        for (uint256 i = _cursor; i < fdTfId.length && (i < _cursor + _count || _count == 0 ); i++) {
             _duration[i] = fdTariffIdToInfo[fdTfId[i]].duration;
             _interest[i] = fdTariffIdToInfo[fdTfId[i]].interest;
         }
@@ -806,12 +818,10 @@ contract Bank is Ownable {
      * @param _tariffId Fixed deposit tariff.
      */
     function removeFDDurationAndInterest(uint256 _tariffId) external onlyByManager {
-        for(uint256 i = 0; i < fdTfId.length; i++){
-            if(fdTfId[i] == _tariffId){
-                fdTfId[i] = fdTfId[fdTfId.length.sub(1)];
-                fdTfId.pop();
-            }
-        }
+
+        fdTfId[fdTariffIdToFdTfIdIndex[_tariffId]] = fdTfId[fdTfId.length.sub(1)];
+        fdTfId.pop();
+
         emit RemoveFDDurationAndInterest(_tariffId);
     }
     
