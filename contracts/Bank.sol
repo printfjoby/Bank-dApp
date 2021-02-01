@@ -238,7 +238,13 @@ contract Bank is Ownable {
      * @dev Emitted when Owner changes the manager.
      * @param managerAddrs Manager's address.
      */
-    event SetManager(address managerAddrs);  
+    event SetManager(address managerAddrs); 
+
+    /**
+     * @dev Emitted when a new user is added.
+     * @param userAddress User's address.
+     */
+    event CreateAccount(address userAddress);  
 
         
     
@@ -293,7 +299,7 @@ contract Bank is Ownable {
     
     /* Functions */
     
-    
+
     /**
      * @notice Send eth to deposit it in the account.
      * @dev User deposits to his/her account.
@@ -302,10 +308,8 @@ contract Bank is Ownable {
         
         require(acceptDeposit,"Deposit function freezed by Owner");
 
-        if(!userInfo[msg.sender].accStatus) {
-            userInfo[msg.sender].accStatus = true;
-            userAddress.push(msg.sender);
-        }
+        _createAccount();
+
         userInfo[msg.sender].balance = userInfo[msg.sender].balance.add(msg.value);
         contractBalance = contractBalance.add(msg.value);
         
@@ -338,10 +342,7 @@ contract Bank is Ownable {
         
         require(acceptDeposit,"Deposit function freezed by Owner");
 
-        if(!userInfo[msg.sender].accStatus) {
-            userInfo[msg.sender].accStatus = true;
-            userAddress.push(msg.sender);
-        }
+        _createAccount();
         
         userInfo[msg.sender].totalUsrFD = userInfo[msg.sender].totalUsrFD.add(msg.value);
         
@@ -443,10 +444,8 @@ contract Bank is Ownable {
     function requestLoan(uint256 _amount, uint256 _tariffId) external {
         
         require(loanAvailable,"Loans Unavailable");
-        if(!userInfo[msg.sender].accStatus) {
-            userInfo[msg.sender].accStatus = true;
-            userAddress.push(msg.sender);
-        }
+        
+        _createAccount();
         
         uint256 _loanId = uint256(keccak256(abi.encodePacked(userInfo[msg.sender].loanInfo.length, now, msg.sender)));
         uint256 _repayAmountBal = _amount.add(
@@ -884,5 +883,22 @@ contract Bank is Ownable {
     function getAllUsers() external view onlyByManager returns(address[] memory _userAddrs) {
         
         _userAddrs = userAddress;
+    }
+
+    /* Internal */
+    
+    /**
+     * @notice Adds user account.
+     * @dev Adds user address to userInfo array.
+     */
+    function _createAccount() internal {
+
+        if(!userInfo[msg.sender.accStatus) {
+            userInfo[msg.sender].accStatus = true;
+            userAddress.push(msg.sender);
+
+            emit CreateAccount(msg.sender);
+        }
+
     }
 }
