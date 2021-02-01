@@ -57,7 +57,7 @@ contract Bank is Ownable {
     // Store information of the User.
     struct UsrInfo{
         
-        bool acc_status; // Account status. `true` value denoted existing user.
+        bool accStatus; // Account status. `true` value denoted existing user.
         uint256 balance; // Balance amount.
         uint256 totalUsrFD; // Sum total of all Fixed Deposit.
         LnInfo[] loanInfo; // Store details of all Loans of an User.
@@ -273,7 +273,7 @@ contract Bank is Ownable {
     
     /** @dev Requires that the sender is the Manager */
     modifier onlyByManager() {
-        require(managerAddress == msg.sender);
+        require(managerAddress == msg.sender, "Access restricted to Manager only");
         _;
         
     }
@@ -302,8 +302,8 @@ contract Bank is Ownable {
         
         require(acceptDeposit,"Deposit function freezed by Owner");
 
-        if(!userInfo[msg.sender].acc_status) {
-            userInfo[msg.sender].acc_status = true;
+        if(!userInfo[msg.sender].accStatus) {
+            userInfo[msg.sender].accStatus = true;
             userAddress.push(msg.sender);
         }
         userInfo[msg.sender].balance = userInfo[msg.sender].balance.add(msg.value);
@@ -338,14 +338,14 @@ contract Bank is Ownable {
         
         require(acceptDeposit,"Deposit function freezed by Owner");
 
-        if(!userInfo[msg.sender].acc_status) {
-            userInfo[msg.sender].acc_status = true;
+        if(!userInfo[msg.sender].accStatus) {
+            userInfo[msg.sender].accStatus = true;
             userAddress.push(msg.sender);
         }
         
         userInfo[msg.sender].totalUsrFD = userInfo[msg.sender].totalUsrFD.add(msg.value);
         
-        uint256 _fdId = uint256(keccak256(abi.encodePacked(now, msg.sender)));
+        uint256 _fdId = uint256(keccak256(abi.encodePacked(userInfo[msg.sender].fdInfo.length, now, msg.sender)));
         userInfo[msg.sender].fdInfo.push(
             FxDptInfo(
                 _fdId,
@@ -443,12 +443,12 @@ contract Bank is Ownable {
     function requestLoan(uint256 _amount, uint256 _tariffId) external {
         
         require(loanAvailable,"Loans Unavailable");
-        if(!userInfo[msg.sender].acc_status) {
-            userInfo[msg.sender].acc_status = true;
+        if(!userInfo[msg.sender].accStatus) {
+            userInfo[msg.sender].accStatus = true;
             userAddress.push(msg.sender);
         }
         
-        uint256 _loanId = uint256(keccak256(abi.encodePacked(now, msg.sender)));
+        uint256 _loanId = uint256(keccak256(abi.encodePacked(userInfo[msg.sender].loanInfo.length, now, msg.sender)));
         uint256 _repayAmountBal = _amount.add(
             (_amount.div(100).mul(lnTariffIdToInfo[_tariffId].interest))
             .div(365).mul(lnTariffIdToInfo[_tariffId].duration)
@@ -676,7 +676,7 @@ contract Bank is Ownable {
     function ownerWithdraw(uint256 _amount) external onlyOwner {
         
         require( _amount <= ownerBalance, "Insufficient owner balance");
-        require( contractBalance - _amount > reserveBalance, "Insufficient Balance");
+        require( contractBalance.sub(_amount) > reserveBalance, "Insufficient Balance");
         contractBalance = contractBalance.sub(_amount);
         ownerBalance = ownerBalance.sub(_amount);
         msg.sender.transfer(_amount);
@@ -692,7 +692,7 @@ contract Bank is Ownable {
      */
     function getUserFdDetails( uint256 _cursor, uint256 _count ) public view returns(uint[] memory, uint256[] memory, uint256[] memory, uint256[] memory, uint256[] memory, uint256[] memory) {
        
-        require(userInfo[msg.sender].acc_status, "Invalid Access");
+        require(userInfo[msg.sender].accStatus, "Invalid Access");
         address _userAddrs = msg.sender;
         uint256 memory _size = ( _cursor + _count ) < userInfo[_userAddrs].fdInfo.length && _count != 0 ? _count : userInfo[_userAddrs].fdInfo.length;
 
@@ -720,7 +720,7 @@ contract Bank is Ownable {
      * @dev Get the deposit details of an user.
      */
     function getUserDepositDetails() public view returns(uint256 _balance, uint256 _totalFdAmount) {
-        require(userInfo[msg.sender].acc_status, "Invalid Access");
+        require(userInfo[msg.sender].accStatus, "Invalid Access");
         address _userAddrs = msg.sender;
         _balance = userInfo[_userAddrs].balance;
         _totalFdAmount = userInfo[_userAddrs].totalUsrFD;
@@ -736,7 +736,7 @@ contract Bank is Ownable {
         returns(uint256[] memory _loanIndexes, uint256[] memory _loanIds, uint256[] memory _amounts,
         uint256[] memory _durations, uint256[] memory _interests, uint256[] memory _endTimes, uint256[] memory _loanStatus) {
             
-        require(userInfo[msg.sender].acc_status, "Invalid Access");
+        require(userInfo[msg.sender].accStatus, "Invalid Access");
         address _userAddrs = msg.sender;
 
         for (uint256 i = _cursor; i < userInfo[_userAddrs].loanInfo.length && (i < _cursor + _count || _count == 0 ); i++) {
@@ -768,7 +768,7 @@ contract Bank is Ownable {
      * 
      */
     function setLoanDurationAndInterest(uint256 _duration, uint256 _interest) external onlyByManager{
-        uint256 _tariffId = uint256(keccak256(abi.encodePacked(now, _duration)));
+        uint256 _tariffId = uint256(keccak256(abi.encodePacked(lnTfId.length, now, _duration)));
         lnTfId.push(_tariffId);
         lnTariffIdToInfo[_tariffId] = LoanTariff(_duration, _interest);
         lnTariffIdToLnTfIdIndex[_tariffId] = lnTfId.length.sub(1);
@@ -813,7 +813,7 @@ contract Bank is Ownable {
      */
     function setFDDurationAndInterest(uint256 _duration, uint256 _interest) external onlyByManager{
         
-        uint256 _tariffId = uint256(keccak256(abi.encodePacked(now, _duration)));
+        uint256 _tariffId = uint256(keccak256(abi.encodePacked(fdTfId.length, now, _duration)));
         fdTfId.push(_tariffId);
         fdTariffIdToInfo[_tariffId] = FdTariff(_duration, _interest);
         fdTariffIdToFdTfIdIndex[_tariffId] = fdTfId.length.sub(1);
