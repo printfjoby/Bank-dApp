@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.6.0;
+pragma solidity >=0.6.0;
      
 /* Imports */
 import "./SafeMath.sol"; 
@@ -291,7 +291,7 @@ contract Bank is Ownable {
      *  @param _reserveBalance Reserve balance that is to be maintained in the contract.
      */
     
-    constructor (uint256 _reserveBalance) public {
+    constructor (uint256 _reserveBalance) {
         
         reserveBalance = _reserveBalance;
     }
@@ -328,7 +328,7 @@ contract Bank is Ownable {
 
         userInfo[msg.sender].balance = userInfo[msg.sender].balance.sub(_amount);
         contractBalance = contractBalance.sub(_amount);
-        msg.sender.transfer(_amount);
+        payable(msg.sender).transfer(_amount);
         
         emit Withdraw(msg.sender, _amount);
     }
@@ -346,14 +346,14 @@ contract Bank is Ownable {
         
         userInfo[msg.sender].totalUsrFD = userInfo[msg.sender].totalUsrFD.add(msg.value);
         
-        uint256 _fdId = uint256(keccak256(abi.encodePacked(userInfo[msg.sender].fdInfo.length, now, msg.sender)));
+        uint256 _fdId = uint256(keccak256(abi.encodePacked(userInfo[msg.sender].fdInfo.length, block.timestamp, msg.sender)));
         userInfo[msg.sender].fdInfo.push(
             FxDptInfo(
                 _fdId,
                 msg.value,
                 fdTariffIdToInfo[_tariffId].duration,
                 fdTariffIdToInfo[_tariffId].interest,
-                now.add(fdTariffIdToInfo[_tariffId].duration.mul(1 days) )
+                block.timestamp.add(fdTariffIdToInfo[_tariffId].duration.mul(1 days) )
             ));
         
         contractBalance = contractBalance.add(msg.value); 
@@ -371,11 +371,11 @@ contract Bank is Ownable {
         
         uint256 _fdCount = userInfo[msg.sender].fdInfo.length;
         require(_fdIndex < _fdCount, "Invalid choice");
-        require(userInfo[msg.sender].fdInfo[_fdIndex].endTime >= now, "This Fixed deposit is not matured");
+        require(userInfo[msg.sender].fdInfo[_fdIndex].endTime >= block.timestamp, "This Fixed deposit is not matured");
     
         uint256 _interest =  userInfo[msg.sender].fdInfo[_fdIndex].interest;
         uint256 _numOfDays = userInfo[msg.sender].fdInfo[_fdIndex].duration
-            .add((now.sub(userInfo[msg.sender].fdInfo[_fdIndex].endTime))
+            .add((block.timestamp.sub(userInfo[msg.sender].fdInfo[_fdIndex].endTime))
             .div(1 days));
         uint256 _amount =  userInfo[msg.sender].fdInfo[_fdIndex].amount;
         uint256 _interestAmt = (_amount.div(100).mul(_interest)).div(365); // Interest Amount for 1 day.
@@ -392,7 +392,7 @@ contract Bank is Ownable {
         userInfo[msg.sender].fdInfo[_fdIndex] =  userInfo[msg.sender].fdInfo[_fdCount.sub(1)];
         userInfo[msg.sender].fdInfo.pop();
         
-        msg.sender.transfer(_amount);
+        payable(msg.sender).transfer(_amount);
         
         emit WithdrawFD(_fdId, msg.sender, _amount);
     }
@@ -404,7 +404,7 @@ contract Bank is Ownable {
      */
     function withdrawFDBeforeMaturity(uint256 _fdIndex) external {
         
-        if(userInfo[msg.sender].fdInfo[_fdIndex].endTime >= now) {
+        if(userInfo[msg.sender].fdInfo[_fdIndex].endTime >= block.timestamp) {
             withdrawFD(_fdIndex);
         }
         else {
@@ -412,7 +412,7 @@ contract Bank is Ownable {
             
             require(_fdIndex < _fdCount, "Invalid choice");
             uint256 _interest =  userInfo[msg.sender].fdInfo[_fdIndex].interest;
-            uint256 _numOfDays = (userInfo[msg.sender].fdInfo[_fdIndex].endTime.sub(now)).div(1 days);
+            uint256 _numOfDays = (userInfo[msg.sender].fdInfo[_fdIndex].endTime.sub(block.timestamp)).div(1 days);
             uint256 _amount =  userInfo[msg.sender].fdInfo[_fdIndex].amount;
             uint256 _interestAmt = (_amount.div(100).mul(_interest)).div(365); // Interest Amount for 1 day.
             _interestAmt = _interestAmt.mul(_numOfDays);
@@ -429,7 +429,7 @@ contract Bank is Ownable {
             userInfo[msg.sender].fdInfo[_fdIndex] =  userInfo[msg.sender].fdInfo[_fdCount.sub(1)];
             userInfo[msg.sender].fdInfo.pop();
             
-            msg.sender.transfer(_amount);
+            payable(msg.sender).transfer(_amount);
             
             emit WithdrawFDBeforeMaturity(_fdId, msg.sender, _amount);
         }
@@ -447,7 +447,7 @@ contract Bank is Ownable {
         
         _createAccount();
         
-        uint256 _loanId = uint256(keccak256(abi.encodePacked(userInfo[msg.sender].loanInfo.length, now, msg.sender)));
+        uint256 _loanId = uint256(keccak256(abi.encodePacked(userInfo[msg.sender].loanInfo.length, block.timestamp, msg.sender)));
         uint256 _repayAmountBal = _amount.add(
             (_amount.div(100).mul(lnTariffIdToInfo[_tariffId].interest))
             .div(365).mul(lnTariffIdToInfo[_tariffId].duration)
@@ -483,7 +483,7 @@ contract Bank is Ownable {
         
         require(_loanIndex < _lnCount, "Invalid choice");
         
-         if(userInfo[msg.sender].loanInfo[_loanIndex].endTime >= now){
+         if(userInfo[msg.sender].loanInfo[_loanIndex].endTime >= block.timestamp){
             userInfo[msg.sender].loanInfo[_loanIndex].loanStatus = LnStatus.CrossedDeadline;
             emit LoanDeadLineCrosssed(userInfo[msg.sender].loanInfo[_loanIndex].loanId, msg.sender );
         }
@@ -532,7 +532,7 @@ contract Bank is Ownable {
         userInfo[msg.sender].loanInfo[loanIdToUserLoanInfoIndex[_cancelLoanId]] =  userInfo[msg.sender].loanInfo[_lnCount.sub(1)];
         userInfo[msg.sender].loanInfo.pop();
         
-        emit CancelLoanRequest(_canceloanId, msg.sender);
+        emit CancelLoanRequest(_cancelLoanId, msg.sender);
     }
     
     /**
@@ -544,7 +544,7 @@ contract Bank is Ownable {
      */
     function viewLoanRequests(uint256 _cursor, uint256 _count) external onlyByManager view returns(uint[] memory, address[] memory, uint256[] memory, uint256[] memory, uint256[] memory) {
        
-        uint256 memory _size = ( _cursor + _count ) < loanIdsOfPendingRequests.length && _count != 0 ? _count : loanIdsOfPendingRequests.length;
+        uint256 _size = ( _cursor + _count ) < loanIdsOfPendingRequests.length && _count != 0 ? _count : loanIdsOfPendingRequests.length;
 
         address[] memory _userAddrs = new address[]( _size);
         uint256[] memory _loanIds = new uint256[]( _size);
@@ -585,7 +585,7 @@ contract Bank is Ownable {
         
         if(_approve){
             require( contractBalance - _loanAmount  > reserveBalance, "Insufficient Balance");
-            userInfo[_userAddrs].loanInfo[_userLoanIndex].endTime = now.add(userInfo[_userAddrs].loanInfo[_userLoanIndex].duration.mul(1 days))
+            userInfo[_userAddrs].loanInfo[_userLoanIndex].endTime = block.timestamp.add(userInfo[_userAddrs].loanInfo[_userLoanIndex].duration.mul(1 days));
             userInfo[_userAddrs].loanInfo[_userLoanIndex].loanStatus = LnStatus.Approved;
             payable(_userAddrs).transfer(_loanAmount);
             contractBalance = contractBalance.sub(_loanAmount);
@@ -609,7 +609,7 @@ contract Bank is Ownable {
         
         address _userAddrs = loanIdToUser[_loanId];
 
-        require(userInfo[_userAddrs].loanInfo[loanIdToUserLoanInfoIndex[_loanId]].endTime <= now, "Not reached the Deadline" );
+        require(userInfo[_userAddrs].loanInfo[loanIdToUserLoanInfoIndex[_loanId]].endTime <= block.timestamp, "Not reached the Deadline" );
         
         userInfo[_userAddrs].loanInfo[loanIdToUserLoanInfoIndex[_loanId]].loanStatus = LnStatus.CrossedDeadline;
         
@@ -678,7 +678,7 @@ contract Bank is Ownable {
         require( contractBalance.sub(_amount) > reserveBalance, "Insufficient Balance");
         contractBalance = contractBalance.sub(_amount);
         ownerBalance = ownerBalance.sub(_amount);
-        msg.sender.transfer(_amount);
+        payable(msg.sender).transfer(_amount);
         
         emit OwnerWithdraw(_amount);
     }
@@ -693,7 +693,7 @@ contract Bank is Ownable {
        
         require(userInfo[msg.sender].accStatus, "Invalid Access");
         address _userAddrs = msg.sender;
-        uint256 memory _size = ( _cursor + _count ) < userInfo[_userAddrs].fdInfo.length && _count != 0 ? _count : userInfo[_userAddrs].fdInfo.length;
+        uint256 _size = ( _cursor + _count ) < userInfo[_userAddrs].fdInfo.length && _count != 0 ? _count : userInfo[_userAddrs].fdInfo.length;
 
         uint256[] memory _fdIndexes = new uint256[](_size);
         uint256[] memory _fdIds = new uint256[](_size);
@@ -731,7 +731,7 @@ contract Bank is Ownable {
      * @param _cursor Starting value of the index that is to be fetched from user's loanInfo array.
      * @param _count Number of loan status that is to be fetched from user's loanInfo array. In order to fetch entire array, set count to zero or a number higher than the last index of the array. 
      */
-    function getUserLoanDetails(address _userAddrs, uint256 _cursor, uint256 _count) public view 
+    function getUserLoanDetails(uint256 _cursor, uint256 _count) public view 
         returns(uint256[] memory _loanIndexes, uint256[] memory _loanIds, uint256[] memory _amounts,
         uint256[] memory _durations, uint256[] memory _interests, uint256[] memory _endTimes, uint256[] memory _loanStatus) {
             
@@ -767,7 +767,7 @@ contract Bank is Ownable {
      * 
      */
     function setLoanDurationAndInterest(uint256 _duration, uint256 _interest) external onlyByManager{
-        uint256 _tariffId = uint256(keccak256(abi.encodePacked(lnTfId.length, now, _duration)));
+        uint256 _tariffId = uint256(keccak256(abi.encodePacked(lnTfId.length, block.timestamp, _duration)));
         lnTfId.push(_tariffId);
         lnTariffIdToInfo[_tariffId] = LoanTariff(_duration, _interest);
         lnTariffIdToLnTfIdIndex[_tariffId] = lnTfId.length.sub(1);
@@ -812,7 +812,7 @@ contract Bank is Ownable {
      */
     function setFDDurationAndInterest(uint256 _duration, uint256 _interest) external onlyByManager{
         
-        uint256 _tariffId = uint256(keccak256(abi.encodePacked(fdTfId.length, now, _duration)));
+        uint256 _tariffId = uint256(keccak256(abi.encodePacked(fdTfId.length, block.timestamp, _duration)));
         fdTfId.push(_tariffId);
         fdTariffIdToInfo[_tariffId] = FdTariff(_duration, _interest);
         fdTariffIdToFdTfIdIndex[_tariffId] = fdTfId.length.sub(1);
@@ -871,7 +871,7 @@ contract Bank is Ownable {
         
         managerAddress = _managerAddrs; 
         
-        emit SetManager(_managerAddress);
+        emit SetManager(_managerAddrs);
     }
     
     /**
@@ -893,7 +893,7 @@ contract Bank is Ownable {
      */
     function _createAccount() internal {
 
-        if(!userInfo[msg.sender.accStatus) {
+        if(!userInfo[msg.sender].accStatus) {
             userInfo[msg.sender].accStatus = true;
             userAddress.push(msg.sender);
 
