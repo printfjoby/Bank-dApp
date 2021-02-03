@@ -248,7 +248,7 @@ contract Bank is Ownable {
 
         
     
-     /* Storage */
+    /* Storage */
     
     address[] userAddress; // Array of User addresses.
     address public managerAddress; // Managers's Address.
@@ -540,18 +540,9 @@ contract Bank is Ownable {
      * @dev Manager can view all loan requests waiting for approval.
      * @param _cursor Starting value of the index that is to be fetched from loanIdsOfPendingRequests array.
      * @param _count Number of loan requests that is to be fetched from the array. In order to fetch entire array, set count to zero or a number higher than the last index of the array. 
-     * @return _loans Loans waiting for approval.
      */
-    function viewLoanRequests(uint256 _cursor, uint256 _count) external onlyByManager view returns(uint[] memory, address[] memory, uint256[] memory, uint256[] memory, uint256[] memory) {
-       
-        uint256 _size = ( _cursor + _count ) < loanIdsOfPendingRequests.length && _count != 0 ? _count : loanIdsOfPendingRequests.length;
-
-        address[] memory _userAddrs = new address[]( _size);
-        uint256[] memory _loanIds = new uint256[]( _size);
-        uint256[] memory _amounts = new uint256[]( _size);
-        uint256[] memory _durations = new uint256[]( _size);
-        uint256[] memory _interests = new uint256[]( _size);
-            
+    function viewLoanRequests(uint256 _cursor, uint256 _count) external onlyByManager view returns(uint[] memory _loanIds, address[] memory _userAddrs, uint256[] memory _amounts, uint256[] memory _durations, uint256[] memory _interests) {
+             
         uint256 _lnId;
         uint256 _userLoanIndex;
         address _usrAdrs;
@@ -689,18 +680,10 @@ contract Bank is Ownable {
      * @param _cursor Starting value of the index that is to be fetched from user's fdInfo array.
      * @param _count Number of fd status that is to be fetched from user's fdInfo array. In order to fetch entire array, set count to zero or a number higher than the last index of the array. 
      */
-    function getUserFdDetails( uint256 _cursor, uint256 _count ) public view returns(uint[] memory, uint256[] memory, uint256[] memory, uint256[] memory, uint256[] memory, uint256[] memory) {
+    function getUserFdDetails( uint256 _cursor, uint256 _count ) public view returns(uint[] memory _fdIndexes, uint256[] memory _fdIds, uint256[] memory _amounts, uint256[] memory _durations, uint256[] memory _interests, uint256[] memory _endTimes) {
        
         require(userInfo[msg.sender].accStatus, "Invalid Access");
         address _userAddrs = msg.sender;
-        uint256 _size = ( _cursor + _count ) < userInfo[_userAddrs].fdInfo.length && _count != 0 ? _count : userInfo[_userAddrs].fdInfo.length;
-
-        uint256[] memory _fdIndexes = new uint256[](_size);
-        uint256[] memory _fdIds = new uint256[](_size);
-        uint256[] memory _amounts = new uint256[](_size);
-        uint256[] memory _durations = new uint256[](_size);
-        uint256[] memory _interests = new uint256[](_size);
-        uint256[] memory _endTimes = new uint256[](_size);
             
         for (uint256 i = _cursor; i < userInfo[_userAddrs].fdInfo.length && (i < _cursor + _count || _count == 0 ); i++) {
             

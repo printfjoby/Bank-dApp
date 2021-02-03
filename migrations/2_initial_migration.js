@@ -1,5 +1,6 @@
 var Bank = artifacts.require("Bank");
 
+
 module.exports = function(deployer) {
-  deployer.deploy(Bank);
+  deployer.deploy(Bank,1000);
 };
