@@ -252,13 +252,13 @@ contract Bank is Ownable {
     
     address[] userAddress; // Array of User addresses.
     address public managerAddress; // Managers's Address.
-    uint256 reserveBalance; // Reserve balance that is to be maintained in the contract.
+    uint256 public reserveBalance; // Reserve balance that is to be maintained in the contract.
     
     uint256 public contractBalance; // Balance amount of the contract.
-    uint256 private ownerBalance; // Owner Balance.
-    uint256 constant public loanInterestAmountShare = 10 ; // Loan interest amount share for owner in percent.
-    uint256 public totalFixedDeposit; // Total fixed deposit.
-    uint256[] private loanIdsOfPendingRequests; // Loan ids of pending Loan requests.
+    uint ownerBalance; // Owner Balance.
+    uint constant public loanInterestAmountShare = 10 ; // Loan interest amount share for owner in percent.
+    uint public totalFixedDeposit; // Total fixed deposit.
+    uint256[] loanIdsOfPendingRequests; // Loan ids of pending Loan requests.
     uint256[] public fdTfId; // Fixed Deposit tariff Ids.
     uint256[] public lnTfId; // Loan tariff Ids.
     
