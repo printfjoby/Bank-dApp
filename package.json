@@ -1,0 +1,26 @@
+{
+  "name": "bank-dapp",
+  "version": "1.0.0",
+  "description": "Bank dApp",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "truffle-contract-size": "^2.0.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/printfjoby/Bank-dApp.git"
+  },
+  "author": "Joby Augustine",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/printfjoby/Bank-dApp/issues"
+  },
+  "homepage": "https://github.com/printfjoby/Bank-dApp#readme"
+}
