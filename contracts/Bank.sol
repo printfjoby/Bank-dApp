@@ -306,7 +306,7 @@ contract Bank is Ownable {
      */
     function deposit() external payable{
         
-        require(acceptDeposit,"Deposit function freezed by Owner");
+        require(acceptDeposit,"Deposit Freezed");
 
         _createAccount();
 
@@ -340,7 +340,7 @@ contract Bank is Ownable {
      */
     function fixedDeposit(uint256 _tariffId) external payable {
         
-        require(acceptDeposit,"Deposit function freezed by Owner");
+        require(acceptDeposit,"Deposit Freezed");
 
         _createAccount();
         
@@ -371,7 +371,7 @@ contract Bank is Ownable {
         
         uint256 _fdCount = userInfo[msg.sender].fdInfo.length;
         require(_fdIndex < _fdCount, "Invalid choice");
-        require(userInfo[msg.sender].fdInfo[_fdIndex].endTime >= block.timestamp, "This Fixed deposit is not matured");
+        require(userInfo[msg.sender].fdInfo[_fdIndex].endTime >= block.timestamp, "Not matured");
     
         uint256 _interest =  userInfo[msg.sender].fdInfo[_fdIndex].interest;
         uint256 _numOfDays = userInfo[msg.sender].fdInfo[_fdIndex].duration
