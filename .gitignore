@@ -1,6 +1,8 @@
 # Dependency directories
 node_modules/
 
+# truffle compile output
+build
 
 # package-lock
 package-lock.json
